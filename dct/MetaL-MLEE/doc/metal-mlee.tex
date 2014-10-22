@@ -1,0 +1,1831 @@
+%\documentclass[a4paper,10pt,twoside]{scrartcl}
+\documentclass[a4paper,10pt,twoside]{article}
+
+% TODO: list all error messages
+% TODO: mention  locking
+% TODO: new distro - one tar for all source and 
+% three tars with binaries - one for each OS
+% TODO: explain how to specify parameters in the default la list
+% TODO/mlee: how to set parameters for dc/ma/pa
+% TODO: document problems that might occur with left-over files
+% in tmp, making tmp grow; files that wont fit in tmp etc.
+% TODO!! explain use under win better: use cygwin shell, not cmd!!
+
+
+\newcommand{\manualversion}{3.0}
+\newcommand{\eeversion}{3.0}
+
+\usepackage[T1]{fontenc}
+% use times for OFAI
+\usepackage{times}
+
+\usepackage{graphics}
+\usepackage{url}
+
+\parindent 0cm
+\parskip 1ex plus0.2ex minus0.2ex
+\addtolength{\topsep}{-3\parskip}
+\addtolength{\itemsep}{-3\parskip}
+\clubpenalty = 10000
+\widowpenalty = 10000 
+%%% auch nicht nach Formel
+\displaywidowpenalty = 10000
+\sloppy
+
+%%% Floatpagefractions
+\renewcommand{\floatpagefraction}{1.0}
+\renewcommand{\dblfloatpagefraction}{1.0}
+\renewcommand{\textfraction}{0.0}
+%\renewcommand{\topfraction}{1.0}
+%\renewcommand{\bottomfraction}{1.0}
+%\renewcommand{\baselinestretch}{2}
+
+%% diverse defs ...
+\newcommand{\eenamelong}{METAL Machine Learning Experimentation Environment}
+\newcommand{\eenameshort}{\textsf{METAL--MLEE}}
+\newcommand{\citex}[1]{\textsl{(cite:~{#1})}}
+\newcommand{\note}[1]{\textbf{Note:~{#1}}}
+\newcommand{\see}[1]{$\rightarrow$~\emph{#1}}
+
+\newenvironment{optionlist}
+{\begin{list}{}
+    {\setlength{\itemsep}{0em plus0em minus0ex}
+      \setlength{\parsep}{0ex}
+      \setlength{\topsep}{0em}
+      \setlength{\leftmargin}{2em}
+      \setlength{\listparindent}{0em}
+%      \setlength{\parindent}{3em}
+%      \setlength{\indent}{3em}
+      \setlength{\itemindent}{-2em}
+      \setlength{\partopsep}{0ex}
+    }}
+  {\end{list}}
+
+
+
+\begin{document}
+\author{Johann Petrak \\
+  \url{johann@ai.univie.ac.at} \\[2em]
+  Austrian Research Institute for
+  Artificial Intelligence \\
+}
+\title{METAL \\[5em]
+  The \textsf{ \eenamelong{}} V\eeversion{}  (\eenameshort{}) 
+   \\[3em] Manual 
+  -- Version~\manualversion{}
+  }
+%%%\date{}
+\maketitle
+\cleardoublepage
+\tableofcontents
+\cleardoublepage
+\section{Introduction}
+
+This manual describes the \emph{\eenamelong{}} (\eenameshort{} for short) and
+how it is used in a meta--learning setting. 
+\eenameshort{} is a set of programs, supporting files, and standards
+that allow the 
+organized, self--documenting and distributed execution of 
+machine learning experiments. The results obtained by these 
+experiments can be used as new meta--data for the METAL Data 
+Mining Advisor \citex{theadvisorstuff}.
+
+This manual is an abridged version of  \cite{Petrak:2002a} and
+contains additional information about the use
+of \eenameshort{} in the METAL meta--learning context.
+
+Additional information on other components that are needed for meta--learning
+can be found in \citex{rankingstuff?} and
+\citex{DCT/GSI stuff}. The main source of information for the
+METAL--tools in the internet is \url{www.metal-kdd.org}.
+
+
+\eenameshort{} helps in obtaining the meta--data  
+for new databases and algorithms
+that is needed for meta--learning.
+It is a set of 
+programs and Perl--scripts that help you run the necessary experiments
+in an orderly fashion and create a set of standardized output
+files. 
+
+\eenameshort{}  can be used to obtain
+\emph{error estimates}, \emph{CPU time measurements},
+and other data 
+  about the performance of machine
+learning algorithms on a specific database.
+These measurements will automatically be stored in
+a set of output files, together with other data like
+\emph{database characteristics}, a description of
+the experimentation environment and parameters, and
+a detailled log of the experiment.
+
+The output files  serve as the basis for meta--learning,
+providing the necessary data for the \emph{data mining advisor} 
+\citex{doc about local dma} or other meta--learning schemes.
+
+A more detailled description of what the \eenameshort{} does
+is given in Section~\ref{purpose}.
+
+
+\section{Installation}
+\label{install}
+\subsection{System Requirements}
+
+\eenameshort{} has been developed and tested for SPARC computers
+running the Solaris operating system, however it will work on
+most LINUX and probably also other UNIX systems. It also works 
+on a MS-Windows (32-bit) system with the support of the free 
+\emph{cygwin} software (see~\url{www.cygwin.com}).
+The known limitations of functionality for certain configurations
+and operating systems
+are mentioned in Section~\ref{programs} and in the descriptions of 
+the individual programs. The functionality under MS Windows is
+restricted due to poor support for 
+ressource limitation and CPU time profiling that is available 
+on the command level for this family of operating systems 
+(the CygWin package only provides a subset of the functionality
+needed to fully support all features of \eenameshort{}).
+
+\subsection{Software Requirements}
+
+The following software is needed to be installed on your system in order
+for \eenameshort{} to work. 
+\begin{itemize}
+\item Perl version 5.000 or higher. The \texttt{perl}
+  command must be in the binary search path. For the Perl-scripts
+  to work as commands, the \texttt{perl} binary or a link to it must be
+  available in \texttt{/usr/local/bin}. Otherwise, the scripts
+  must be invoked using the \texttt{perl scriptname} syntax.
+\item A C/C++ compiler, preferably \texttt{gcc}/\texttt{g++}
+  This is not needed if you have a computer with one of the
+  hardware architectures and operating systems for which
+  precompiled binaries are included (see below)
+\item Gnu make version 3.77 or higher (earlier version might work 
+  but have not been tested). This is only needed if you need 
+  to compile binaries yourself.
+\item \texttt{XLISPSTAT} version 3.51 or higher. 
+XLISPSTAT is a portable LISP system with statistical 
+functions, it is available from
+\url{http://www.stat.umn.edu/~luke/xls/xlsinfo/xlsinfo.html}. The 
+\texttt{xlispstat} command must be in the binary search path.
+
+% TODDO!!!!
+\item the program \texttt{md5sum} from the free portable GNU \texttt{textutils}
+package. This package can be obtained from \url{http://www.gnu.org/software/textutils/textutils.html}.  This program is not essential, however.
+If it is missing, no MD5 hashes will be calculated for the
+databases. The \texttt{md5sum} command should be in the binary
+search path. If it is not, the location can be specified in
+the configuration file \texttt{config.pm}.
+The subdirectory \texttt{/src/md5} also contains a version of that
+program that can be built and installed into the \texttt{bin}
+subdirectory using \texttt{make}. To use that version, \texttt{config.pm}
+needs to be adapted accordingly.
+% TODO see ...
+\item In addition you need one or more learning algorithms for
+use with \eenameshort{} (see Section~\ref{adapt} for more information
+on the requirements for learning algorithms).
+
+\end{itemize}
+
+% TODO: mention how to test md5sum: 
+% echo "" | md5sum
+% Make it more clear when you need it, how to compile etc.
+
+
+On most LINUX or UNIX--like systems \texttt{perl}, \texttt{md5sum}, a compiler,
+and \texttt{make} will already be installed. 
+
+For MS--Windows computers,
+the easiest way to get all these for free is to install the
+CygWin software package (\url{www.cygwin.com}).
+
+\subsection{Obtaining and Installing the Program}
+
+\eenameshort{} is distributed as  gzipped tarballs 
+from \url{www.metal-kdd.org/download}. 
+You must download the sources as  \texttt{mlee-metal-src.tgz}.
+Optionally, you can download precompiled binaries for
+x86/linux (\texttt{mlee-metal-binpclinux.tgz}), 
+x86/windows with cygwin (\texttt{mlee-metal-binpccygwin.tgz}) or
+sparc/solaris (\texttt{mlee-metal-binsparcsolaris.tgz}).
+
+Uncompress and extract the archive \texttt{mlee-metal-src.tgz}.
+This will create a directory with the name \texttt{mlee} that
+contains several subdirectories. 
+
+If you also downloaded an archive with binaries, uncompress and
+extract this one too - it will create an additional subdirectory
+\texttt{binpccygwin}, \texttt{binpclinux}, or \texttt{binsparcsolaris}
+within the \texttt{mlee} directory.
+Change into that directory and check if you can run the precompiled
+binaries:
+type \texttt{./dct -h} and \texttt{./shuffle -h}. Both commands
+should produce as an output a short summary of command line 
+options. If this works, copy all files into the directory \texttt{../bin}.
+
+If you cannot or do not want to use the precompiled binaries,
+ compile the programs: 
+Change into the \texttt{mlee} directory and type \texttt{make all}. This 
+will compile the DCT and shuffle programsand place it into the 
+subdirectory \texttt{bin}.
+
+If you do not have the \texttt{md5sum} command already installed 
+and working on your system, type \texttt{make md5sum}. This will
+compile the md5sum program and place it into the subdirectory \texttt{bin}.
+You have to change the setting for the \texttt{\$MD5BIN} variable in
+the configuration file \texttt{scripts/config.pm} to indicate
+the complete path of the \texttt{bin} directory.
+
+% TODO: more information about the config file needed here!!!!
+
+Finally you probably need to adapt \eenameshort{} to the learning
+algorithms you are using. Section~\ref{adapt} gives instructions how
+to do that. 
+
+\eenameshort{} is now ready for use. If you wish you can place
+the subdirectory \texttt{script} in the binary search path. You 
+can then directly invoke the commands from there by simply entering
+the name \emph{provided} the \texttt{perl} program is installed
+in \texttt{/usr/local/bin}. If \texttt{perl} is installed somewhere
+else you can either make a link in \texttt{/usr/local/bin}, or 
+change the Perl--scripts so that the first line
+indicates the correct position, or simply invoke the scripts 
+like this: \texttt{perl <fullpathnameofscript>}.
+
+\subsection{Source code by other authors included in the package}
+
+Nearly all of the programs included in the \eenameshort{} package
+has been written by the author of this document. However the 
+following code by other authors is included:
+
+\begin{itemize}
+\item The \texttt{check\_database.pl} script has originally been
+written by Carlos Soares.
+\item The \texttt{shuffle} program uses a C++ wrapper to the 
+C-code of the \emph{Mersenne Twister} pseudo random number generator,
+written by Takuji Nishimura. The original C-code for PRNG is 
+licensed under the GPL.
+\item the Source code for the md5sum program included in the \texttt{src}
+directory is copyrighted to RSA Data Security, 1991-1992.
+See the comment in the file \texttt{md5c.c} for details.
+\end{itemize}
+
+\section{What \eenameshort{} Does}
+\label{purpose}
+
+The main purpose of \eenameshort{} is to obtain meta--data,
+i.e. data about the performance of learning algorithms on
+different databases (these databases that are used to gather
+performance data for the learning algorithms are also
+called \emph{base}--databases to distinguish them from the
+databases of meta--data obtained in the process).
+The term \emph{performance} of an algorithm includes such 
+measurable properties as \emph{estimated error on unseen
+data}, \emph{CPU time needed} for the training and the 
+evaluation phase, and \emph{complexity} of learned 
+model.
+
+\eenameshort{} can be used to:
+\begin{itemize}
+\item Check if the format of a base--database conforms to 
+the standard database format (see Section~\ref{dbformat}).
+\item Carry out an error estimation experiment to obtain
+error estimates for one or more learning algorithms for
+a base--database. Error estimation strategies include 
+crossvalidation, holdout estimates and leave-one-out.
+\item Obtain \emph{data characteristics} for a base--database
+\item Obtain additional \emph{database measurements} for a
+base--database.
+\item Calculate error estimates and other statistical 
+measures to describe the performance of the learning 
+algorithm and statistically compare different learning
+algorithms.
+\item Document the details of an experimentation run for 
+future reference.
+\item Extract a \emph{meta database} from the output files
+created for each experiment.
+\item Manage and make comparable experiments that were 
+carried out on different machines.
+\item Normalize CPU time measurements for measurements
+obtained on different machines.
+\end{itemize}
+
+For use with the data mining advisor (\citex{advisor  stuff}), 
+\eenameshort{} is used in a standardized way. This is described
+in Section~\ref{exps}.
+
+
+
+\section{Standard Database Format}
+\label{dbformat}
+In order to be usable with \eenameshort{}, databases must
+be in a standard format. This format is similar to the formats
+used by the \textsl{C4.5} \cite{Quinlan:1993} and 
+\textsl{C5.0} machine learning
+algorithms, but with additional constraints. 
+If your database does not conform to the format
+explained below in more detail, it needs to be 
+converted. 
+% TODO: currently not included!
+%Section~\ref{convert} gives some tips how to
+%do that.
+
+For each database, two files are required: one file, the
+\emph{data}--file that contains
+the actual data in ASCII-coded, comma--separated variables (CSV)
+format, and another 
+file, the \emph{names}--file that contains the names
+ and types of the variables in the 
+data file. A convention that must be observed for use with
+\eenameshort{} is that both files must have the same 
+name and be located in the same path, but differ
+in their file name \emph{extension}: the data file
+has the extension \texttt{.data} while the names file
+has the extension \texttt{.names}. The part of the filename
+without the extension that is necessary to uniquely identify
+a specific pair of files for a database is called
+\emph{filestem}.
+
+Hence, a database for use with \eenameshort{} always consists
+of two files, the names and data files, and can be specified
+by the part of the name that is common to both files, the
+filestem.
+
+\eenameshort{} can handle both regression and classficiation
+problems, i.e. both numeric and discrete target variables.
+In both cases, the target variable has to be the last variable
+in the comma-separated list of fields that make up the individual
+records in the data file.
+
+The restrictions on the format of the database have been imposed to
+be able to use as many learning algorithms as possible without
+having to perform costly database format conversions. Note that 
+depending on which learning algorithms you use and how the 
+interface scripts that plug these learning algorithms into 
+\eenameshort{} are written, it might be possible to use a format
+that does not obey all of the constraints given below. For
+example,
+the limitation that the labels used for classes may not be
+used for discrete attributes has been introduced to make it
+easier to support the \texttt{ripper} rule learning algorithm.
+If you do not use this algorithm or if you enhance the interface
+script for this algorithm, that constraint on the databases need
+not be enforced any longer.
+
+
+\subsection{Names File}
+
+The names file describes the name and types of the fields, 
+or \emph{attributes}, 
+in the data file. The format of the names file differs slightly
+if the target variable is continuous (i.e. the database 
+is used for a regresion problem) or discrete (the database 
+is used for a classification problem):
+
+
+\begin{itemize}
+\item The first line for a classification database contains a comma
+separated list of possible class labels and is terminated by a dot. 
+Each class label must be a valid atom (see below for the definition) 
+that does not occur as a value of any of the other discrete attributes.
+\item The first line for a regression database contains the
+name of the last attribute defined in the names file, followed by a dot.
+\item All other lines contain attribute descriptions, in order
+of appearance of the corresponding fields in the data file.
+\item An attribute description consists of an attribute name that starts 
+in column~1, followed by a colon and a blank, followed by either the
+word  "continuous" for real--valued attributes or a comma separated
+list of values for a discrete--valued attribute. Discrete values 
+must be atoms and cannot be integers. 
+\item All attribute descriptions must be terminated by a dot.
+\item Names must be atoms.
+\item For classification databases, the values for discrete
+attributes may not include values that are used as class labels.
+\item The names file contains nothing else. More specifically, it must
+not contain any comments as allowed for \texttt{C5.0} nor any blank
+lines.
+\item The missing value indicator is not part of the value list
+or otherwise listed in the attribute description.
+\end{itemize}
+
+An \emph{atom} is a string of characters that does not contain
+blanks, other whitespace, special characters or accented characters
+and has a maximum length of 32 characters. The string can contain 
+numeric digits, but must  start with an alphabetical character.
+
+
+\subsection{Data File}
+
+The data file contains one new-line terminated record for each case
+in the database. Each record is a comma separated list of either 
+numeric values, atoms, or the missing value indicator.
+
+\begin{itemize}
+\item Every atom that occurs in a field must be mentioned in the
+corresponding attribute description in the names file.
+\item Numeric values must be represented in a way that can be
+read in with the C \texttt{scanf} function using the ``\%g'' directive.
+\item The missing value indicator for both numeric and discrete 
+fields is an unquoted question mark.
+\item The atoms used for discrete fields must not be quoted.
+\item Data records must not be terminated by a dot.
+\end{itemize}
+
+\subsection{Formal Format Description}
+
+Here is a definition of the file formats,
+in a meta--language similar to Backus-Naur with
+Perl--like regular expressions. NUMVALUE is not
+defined -- it should be a string that can be 
+parsed to a numeric value by the C \texttt{scanf} 
+function and format directive ``\%g''. 
+
+\begin{verbatim}
+atom := [a-z][a-z0-9]{0,29}
+
+namesfile := targetline NEWLINE (attrdefline){1,N}
+targetline := attrname DOT | labellist DOT
+attrname := atom
+labellist := atom [COMMA atom]*
+attrdefline := (attrname COLON SPC labellist) |
+               (attrname COLON SPC 'continuous') DOT 
+DOT := '.'
+COLON := ':'
+COMMA := ','
+SPC := ' '
+datafile := (valuelist NEWLINE ){1,N}
+valuelist := value COMMA value [COMMA value]*
+value := (atom | NUMVALUE)
+\end{verbatim}
+
+
+% TODO: currently not included!!
+%\subsection{Converting to Standard Format}
+%\label{convert}
+
+
+
+\section{The Programs}
+\label{programs}
+
+The following section describes each of the programs in the
+\eenameshort{} in more detail. Note that all programs will
+accept the \texttt{-h} option that will show an explanation
+of all valid options and the version and versiondate of 
+the program. The following documentation only contains 
+explanations of those options that are releveant for the
+use of \eenameshort{} for use with the \emph{datamining advisor}.
+For a more complete documentation of the programs see
+\cite{Petrak:2002a}.
+
+\subsection{Main experimentation program: \texttt{run\_exp}}
+
+The \texttt{run\_exp} program performs the follwing tasks for
+a given base database:
+\begin{itemize}
+\item Optionally run the data characterization program
+\item Run a parallel error estimation for a list of specified
+  learning algorithms for which \emph{interface programs} 
+  (see~\ref{interface}) exist. A 10-fold crossvalidation
+  procedure will usually be carried out for this, but
+  other estimation procedures can be specified.
+\item Create a file with the correct target values for each
+  estimation fold.
+\item Create files with the predicted target values for 
+  each fold and learning algorithm.
+\item Measure thge CPU times for each fold and learning algorithm
+  spent for the training and the evaluation phase.
+\item Create a log file that contains the details of the 
+  experiment and create the \emph{results}--file that 
+  contains a machine--readable set of meta--data about the
+  experiment.
+\item Optionally create performance statistics for all algorithms
+  and algorithm pairs by running the \texttt{run\_stats} program.
+  This will create the \emph{stats}--file with a machine readable
+  set of meta--data about learning algorithm performance.
+\end{itemize}
+
+For the error estimation, the input base--database will be 
+randomly shuffled and split into one or more pairs of training-
+and evaluation data. The program \texttt{run\_exp} needs 
+a random seed to control the random shuffling. The random seed
+defines the exact way how the data is being shuffled and
+partitioned. This allows to run the program on different
+machines, at different times, with different learning algorithms
+and still obtain comparable error estimates and comparable 
+files with predictions.
+
+The program creates a standardized set of output files in
+the output directory specified (see Section~\ref{output}).
+\enlargethispage{1em}
+
+\subsubsection{Synopsis}
+
+%%% NOTE!!! explain how to pass parameters to the LAs
+\begin{verbatim}
+  run_exp -h
+  run_exp -f stem -s seed [-v] ...
+\end{verbatim}
+
+\subsubsection{Important Options}
+
+The following describes just the subset of options that 
+are important for use in the METAL-setting:
+
+\begin{optionlist}
+\item \texttt{-h}:  Show detailled usage information, defaults, and
+  program version. 
+\item \texttt{-f stem}:  The filestem, including the full
+path to the location of the database. In other words, the full
+filename of the data or names file without the extension (requried).
+\item \verb=-s seed=:  The seed to be used for the random number
+generator that determines how the data file will be shuffled
+before the estimation procedure is being carried out. If
+no seed is given, the value 1 will be used. The special value
+"norand" will supress random shuffling and keep the ordering 
+of the database file. This parameter is ignored for estimation
+strategy "leave one out". 
+\item \verb=-regr=:  Indicate that the database describes a regression
+  problem (i.e. the target variable is numberic). If omitted,
+  a classification problem (i.e. the target variable is discrete)
+  is assumed. 
+\item \verb=-dt path=:  The path to the directory that should be used 
+  to store temporary files. Default is \texttt{/tmp}. This 
+  directory must be on a device that has enough free space to
+  hold all the intermediate files. Note that unless option
+  \texttt{-k} or \texttt{-d} or \texttt{-lad} is specified,
+  temporary files should get removed at the end of an experiment.
+  However due to several reasons the directory can fill up with
+  leftover files, so be sure to remove unneded ones regularily.
+\item \verb=-d=:  Switch on debug mode: this will show much more information
+  in the log file and on the console (-d implies -v which will
+  show everything that goes into the logfile on the console too) 
+\item \verb=-lad=:  Switch on debugging for interface scripts. 
+  This will pass the
+  option \verb=-d= to all the interface scripts, causing a \emph{lot}
+  more output from the interface scripts get logged in the logfile.
+\end{optionlist}
+
+\subsubsection{Specifying a CPU time limit}
+\eenameshort{} allows you to specify a CPU time limit for each
+call of an external learning algorithm programm. This is necessary
+since otherwise the only way to end an experiment where one
+of the algorithm loops or takes too much time would be 
+to terminate the whole experiment, loosing all the data for 
+all the algorithms. You can specify the CPI time limit, in seconds, 
+using option \texttt{-t}:
+\begin{verbatim}
+run_exp -f stem -s 1 -t 3600
+\end{verbatim}
+This example sets the CPU time limit to one hour.
+(The default is 43200 seconds, or 12 hours, use the value
+0 to unlimit CPU time usage)
+
+Note however that not all OS's support this. Currently 
+this is not possible under Windows. On some systems that do not support this
+but do support killing processes the coded workaround that tries 
+to kill the process after a specfified number of \emph{elapsed} 
+(not CPU!) seconds might work, but this is not guaranteed either.
+
+\subsubsection{Specifying learning algorithms}
+ Learning algorithms
+are always invoked through \emph{interface scripts}.
+If you want to use a learning algorithm with \eenameshort{}
+for which there is not already an interface script included
+in the \texttt{scripts} subdirectory, you need to create a new
+one (see Section~\ref{adapt}). Interface scripts for learning 
+algorithms are named \texttt{run\_cla\_laname} for classification
+algorithms and \texttt{run\_rla\_laname} for regression
+algorithms, where \texttt{laname} is the name under which the
+learning algorithm should be known to \eenameshort{}.
+
+To invoke one or more algorithms for an experiment, give this 
+name of the algorithm as an argument to the \texttt{run\_exp}
+option \texttt{-l}. In order to use more than one algorithm, 
+specify the option \texttt{-l} multiple times, e.g.:
+\begin{verbatim}
+run_exp -f somestem -s 1 -l alg1 -l alg2 
+\end{verbatim}
+This example shows how to specify to run algorithms \texttt{alg1}
+and \texttt{alg2}.
+
+Instead of specifying the list of learning algorithms every time,
+you can specify the list to be used as a default in the 
+configuration file \texttt{config.pm}.
+
+\subsubsection{Passing parameters to the learning algorithms}
+
+Interface scripts both execute the training and the 
+prediction phase of a learning algorithm. In order to
+specify to which phase the parameter should be passed, you 
+need to specify a ``sub option'':
+\begin{verbatim}
+run_exp -f stem -s 1 -l "alg1 -at -A" 
+  -l "alg2 -ae '-r 1.1 -s 2.1' " 
+\end{verbatim}
+This example shows how to add the option \texttt{-A} to the call
+of algorithm \texttt{alg1} for the training phase and options
+\texttt{-r 1.1 -s 2.1} to the testing phase of algorithm \texttt{alg2}.
+You can use suboption \texttt{-a} to specify what to pass to 
+both the training and the testing phase calls.
+
+You can also use the same algorithm twice with different 
+parameter settings. However for this to work, you also have to
+specify different \emph{algorithm suffices} for each of the
+different calls:
+\begin{verbatim}
+run_exp -f somestem -s 1 -l 'alg1 -at "-c 0.1" -asuf c0.1' 
+  -l 'alg1 -at "-c 0.2" -asuf c0.2'
+\end{verbatim}
+This suffix will be appended everywhere the algorithm name is mentioned, i.e.
+statistics, the log and results file will now contain entries for
+an algorithm \texttt{alg1c0.1} and an algorithm \texttt{alg1c0.2}.
+
+\subsection{Algorithm interface programs}
+\label{interface}
+
+Interface programs are used to provide the main experimentation
+program \verb=run_exp= with one standard interface to many different
+learning algorithms. In order for this to work, learning algorithms
+must fulfill some requirements that are listed in Section~\ref{adapt}
+which also explains how to adapt and add interface programs for 
+new learning algorithms.
+
+Interface programs must reside in the same directory as the \verb=run_exp=.
+The follow a simple naming scheme: \verb=run_cla_xxx= for an interface
+program to a classification learning algorithm named \verb=xxx= and
+\verb=run_rla_yyyy= for an interface program to a regression learning
+algorithm named \verb=yyyy=. To specify a learning algorithm as an 
+argument to \verb=run_exp= or in the configuration file \verb=config.pm=
+only the name of the learning algorithm must be given (i.e. \verb=xxx= or
+\verb=yyyy= only).
+
+All interface programs take the same set of options. For testing 
+purposes, or when debugging problems encountered during the execution
+of \verb=run_exp= it can be useful to directly run an interface program.
+For this, a pair of training and testing datasets and a names file must
+exists (i.e. three files with the same filestem and the following extensions:
+ \verb=.data=,  \verb=.test= anda \verb=.names=).
+
+Here are the most important options for manually running an interface 
+script:
+
+\begin{optionlist}
+\item \verb=-h=: Show all possible options and a short explanation. 
+\item \verb=-istem STEM=: The file stem (including the path) that 
+  identifies the three files (data, test, and names file) needed.
+  When invoked from within the \verb=run_exp= program the filestem
+  will usually also include the seed and the process ID to avoid
+  duplicate file names for the temporaryly created files. 
+\item \verb=-tmppath PATH=:  Where to store intermediate or temporary data. This 
+  is currnetly not used by \verb=run_exp= since the training/test/names
+  files are stored in the temporary directory anyways and it is easier
+  to derive other filenames for temporary files directly from this filestem. 
+\item \verb=-a args=: Pass additional arguments to all calls of the algorithm
+  (training and testing) 
+\item \verb=-at args=: Additional arguments for the training call 
+\item \verb=-ae args=: Additional arguments for the testing (evaluation) call 
+\item \verb=-cpulimit n=:  Try to limit the CPU time limit to that many seconds 
+  (might not work on all systems) 
+\item \verb=-kmodel file=: Copy the model to this file 
+\item \verb=-nopgm= dont actually call external programs, for debuggin 
+\item \verb=-portable=/\verb=-noportable=: Usually the program tries to figure out
+  how to limit CPU time and how to determine the system/user CPU time
+  needed for the algorithm on a specific system. The \verb=-portable=
+  switch can be used to run (experimental) code that will try to
+  do everything with Perl--code that is as portable as possible.
+  Note that portable mode still has its flaws -- especially the 
+  termination of processes does not work correctly on most systems.
+  If the \verb=-portable= option is used, \verb=-cputime= limit
+  will be interpreted as a limit for \emph{elapsed runnning} time 
+  instead of CPU time. 
+\item \verb=-k=: Do not delete intermediate datasets 
+\item \verb=-d=: Switch on debug mode 
+\item \verb=-v=:  Switch on verbose mode 
+\end{optionlist}
+
+
+% TODO: for full version - other interface programs!
+
+\subsection{Extracting information from the results: \texttt{parse\_results}}
+
+This program will make it easier to extract the interesting information
+from the files generated for an experiment. The standard files 
+that are normally created are the files ending in the following
+extensions: \texttt=.results=, \texttt=.dct=, \texttt=.log=, and 
+\texttt=.stats= (see Section~\ref{output}). The \texttt=.log= file
+contains a log of all actions performed and the other three files
+contain result data (and are often collectively referred to as
+\emph{result files}). These three files contain lines of the format:
+
+\begin{verbatim}
+Some qualified variablename: value
+\end{verbatim}
+
+Each line contains a value for a variable. The value is everything
+after the colon (a value can be multidimensional, i.e. consist of more
+than one word, but usually just is a single word or number).
+The variable name is everything before the colon and consist of
+several words. The following line gives the value of the error estimate
+for algorithm \texttt=c50boost= in cross validation fold 2 of repitition 0
+in a \verb=.stats= file:
+
+\begin{verbatim}
+Error c50boost 0 2: 0.34123110000
+\end{verbatim}
+
+The \texttt=parse\_results= program can be used to extract the values for
+certain variables and create a file that contains just the values
+of these variables, separated by commas organized by lines.
+The program can be used to generate one line for each filestem,
+one line for each filestem/algorithm combination or one line
+for each filestem/algorithm/crossvalidation-fold combination or 
+one line for each filestem/pair-of-algorithms combination.
+
+The following example demonstrates how the program can be used 
+to extract different types of data:
+
+{\footnotesize
+\begin{verbatim}
+% ls
+allrep_2.dct      allrep_2.stats  led24_2.results  segment_2.dct      segment_2.stats
+allrep_2.results  led24_2.dct     led24_2.stats    segment_2.results
+
+% parse_results *.* -f %DS -f %LA -f stats.Error 
+allrep_2,basedef,0.032873806998939555
+allrep_2,basedef200,0.032873806998939555
+allrep_2,baserand,0.9899257688229056
+allrep_2,c50boost,0.009544008483563097
+allrep_2,c50rules,0.009278897136797455
+...
+allrep_2,clemRBFN,0.032873806998939555
+allrep_2,lindiscr,0.08510074231177095
+allrep_2,ltree,0.008748674443266172
+allrep_2,mlcib1,0.024920466595970307
+allrep_2,mlcnb,0.05726405090137858
+allrep_2,ripper,0.010604453870625663
+
+% parse_results *.* -breakup ds -f %DS -f results.DBSize -f results.N_discrete_attr
+allrep_2,3772,21
+led24_2,3200,24
+segment_2,2310,0
+\end{verbatim}
+}
+
+\subsubsection{Synopsis and options}
+
+\begin{verbatim}
+parse_results -h
+parse_results filelist -f fieldspec [-f fieldspec ...] 
+  [-breakup ds | la | lapair | foldla]
+  [-o outfile] [-n outnamesfile] [-fn] [-hostnorm] [-algnorm alg]
+  [-s sep] [-m mv] [-mnp x] [-strip]
+  [ignoredc] [-ignoreresults] [-ignorestats] 
+\end{verbatim}
+
+\begin{optionlist}
+\item \verb=filelist=: The list of files to process. The easiest way to
+  do this is to use a glob-pattern. For example, if there is a 
+  subdirectory below the current directory for each filestem and 
+  you want to process all results files for all filestems, the simplest
+  way to specify this is ``\verb=*/*.{dct,results,stats}=''.
+\item \verb=-f fieldspec=: This option can occur more than once and specifies
+  (in order) the list of fields to include in the output. A \verb=fieldspec=
+  is either a qualified fieldname, a special fieldname or a function.
+  A qualified fieldname is of the form \verb=filspec.fieldname= where 
+  \verb=filespec= is one of \verb=stats=, \verb=dct=, or \verb=results= 
+  and the \verb=fieldname= is the name portion of one of the fields that
+  occur in that file, e.g. \verb=dct.Nr_attributes= or \verb=stats.Error=.
+  The following special field names canbe used: \verb=%LA= the name 
+  the learning algorithm (not for breakup=ds); \verb=%DS= the filestem as
+  extracted from the file processed (i.e. this will usually include the
+  seed and eny suffixes - the 'true' filestem 
+  can be extracted using \verb=results.Filestem= or \verb=results.InFilestem=;
+  \verb=%FLD= the fold number (only for breakup=foldla);  \verb=%REP= 
+  the repeat number; \verb=%LA1= and \verb=%LA2= the names of both learning
+  algorithms for breakup=lapair.
+  Functions must get specified in the form \verb=NAME(arg)=. The following
+  functions are currently defined: \verb=AVG=, \verb=SUM=, \verb=COUNT=,
+  \verb=MIN=, \verb=MAX= will all calculate the corresponding function
+  over all fields that match a regular field name pattern. For example to
+  find the maximum value for all fields with a name that starts with 
+  \verb=Attr_Count_All_Value= in the dct file, use \verb='MAX(dct.Attr_Count_All_Value.*)'=. Note that the pattern must be a Perl--type regular expression,
+  not a glob pattern. This featrue cannot be used to calculated
+  functions over qualified variable names, e.g. \verb='MAX(results.Traintime.*)'= with breakup=ds will \emph{not} work. The function \verb=ACC(field)= will
+  calculate \verb=1-field=.
+\item \verb=-breakup x=: Specify for which level of detail the program
+  will create individual lines in the output. 
+  the default is  \verb=la=, which produces one line for each combination
+  of filestem and learning algorithm. The option \verb=lapair= will
+  generate one line of output for each combination of filestem and
+  pairs of learning algorithms,
+  \verb=ds= generates one line of output for each filestem and 
+  \verb=foldla= generates one line for each combination of filestem, 
+  learning algorithm and crossvalidation fold 
+  % NOTE: what about repeats??
+\item \verb=-o filename=: Specify a file where to write the output
+  to (if not given: standard output).
+\item \verb=-n filename=: Specify a file where to write a C4.5 names
+  file for the output -- the program will try to guess the type and 
+  possible values of attributes and will also try to convert 
+  field names to something that is usable with most learning algorithms
+  that use C4.5 format.  Note that the generated file will just 
+  contain a line for each field in the output and is thus not
+  directly usable for C4.5 (for this you need to remove the line 
+  for the last field and add a class label definition line at the 
+  beginning instead).
+\item \verb=-fn=: include a line with fieldnames as the first line of
+  output -- this is useful for many programs that can process CSV files
+ (e.g. \texttt{R}).
+\item \verb=-hostnorm file -algnorm alg=: Specify the name of a file that contains
+  host normalization data. All fields continaing the string ``time''
+  will then automatically get normalized based on the timing factors
+  for each host.  If \verb=algnorm alg= is given, the times will
+  be expressed as a multiple of the time the algorithm \verb=alg= needed.
+  For more information on time normalization see the next section.
+\item \verb=-s sep=: Use \verb=sep= to separate fields instead of commas
+\item \verb=-m mv=: Use \verb=mv= instead of a question mark to indicate
+  missing values.
+\item \verb=-mnp x=: Use \verb=x= instead of \verb=mv= to indicate a value 
+  for which no field has been found in the input files.
+\item \verb=-strip=: Strip strange characters from all non-numeric output.
+  This can help to make the output more easily digestable by other programs.
+\item \verb=-ignoredct=, \verb=-ignoreresults=, \verb=ignorestats=: Do not process the corresponding files. This can speed up processing significantly.
+\end{optionlist}
+
+
+\subsection{Normalize time measurements: \texttt{parse\_times} }
+
+The \eenameshort{} package is intended to simplify the process of
+obtaining machine learning experimentation results that possibly
+get carried out on different hosts. The \verb=run_exp= script
+collects the timing information returned from the interface scrips and
+puts them into the \verb=.results= file.
+However, CPU time measurements obtained on different hosts are 
+not comparable. The task of \verb=parse_times= is to analyze the
+experimentation results that were obtained on different machines 
+for the same dataset, using the same seed and algorithms.
+From the times measured on different machines, the program will
+create a table of factors which roughly represent the relative
+performance increase or decrease relative to one reference host.
+The table generated can then be used by the \verb=parse_results=
+script normalize all time measurements to the reference machine.
+
+WARNING: this feature should be used with extreme caution!
+You should be aware that the factor can only be used as 
+a very rough aproximation to the speed differences between 
+two machines. Several factors make this approach rather 
+inaccurate:
+
+\begin{itemize}
+\item the CPU time measurement itself can depend on the load on the system
+and other factors that vary over time on the same system.
+\item any inaccuracies will be multiplied if the measurements
+are close to the measurement resolution of the system.
+Because of this the \verb=parse_times= program will ignore all time
+measures $< 0.1$. 
+\item different machines will optimize different instruction mixes and
+thus the speedup depends on the instruction mix needed for a specific
+execution. This means that different learning algorithms on the same 
+dataset can show different speedups, and that the same algorithm
+will show different speedups for different datasets.
+\end{itemize}
+
+\subsubsection{Synopsis and options}
+
+\begin{verbatim}
+parse_times -host hostname -from YYYYMMDD -to YYYYMMDD
+  [-calc avg | last | median] [-xlispstat filename]  filelist
+\end{verbatim}
+
+\begin{optionlist}
+\item \verb=filelist= A list of \verb=.results.= files to process, each 
+containing timing information for the same set of learning algorithms
+on the same dataset. 
+\item \verb=-calc x= What to do if several measurements for the
+same algorithm and host are found (this will be the case if the 
+experiment gets repeated on the same machine and the \verb=run_exp=
+option \verb=-o= is \emph{not} given, causing all results to get
+appended in the same file instead of overwriting old results).
+Possible values are: \verb=avg= -- calculate the average; \verb=median= --
+calculate the median; and \verb=last= -- use the last (most recent)
+value found.
+\item \verb=-xlispstat filename= write data for subsequent processing
+in XLISPSTAT or LISP to this file.
+\item \verb=-from YYYYMMDD -to YYYYMMDD=: The generated table will 
+contain this date
+as the date identifying the start and end
+ of the validity period for the factors.
+Since machines can get upgraded or other things can change significantly
+over time that will influence the speedup factor, you can restrict the
+validity of the factor to a certain time period. The \verb=parse_results=
+program will automatically use the factor from the correct time period
+based on the experimenation date found in the results files.
+\end{optionlist}
+
+\subsection{Checking the database format: \texttt{check\_database.pl}}
+
+The script \verb=check_database.pl= will check the format of a
+database for compliance with the standard database 
+format needed by METAL (see 
+Section~\ref{dbformat}). 
+Note that unless you specify the option \verb=-nocheckformat=, this
+script will automatically get called from \verb=run_exp= in order 
+to make invalid results caused by a wrong format -- which might
+otherwise go undetected -- less likely.
+
+\subsubsection{Synopsis and options}
+
+\begin{verbatim}
+check_database.pl -f filestem [-regr] [-limit maxerrs] [-max maxlines] 
+  [-dbg] [-o]
+\end{verbatim}
+
+\begin{optionlist}
+\item \verb=-f filestem=: Filestem (and path) of the database to process.
+  The files \verb=<filstem>.data= and \verb=<filestem>.names= must exist.
+\item \verb=-regr=: Indicate that the database is for a regression, not
+  classification problem.
+\item \verb=-limit n=: Limit the number of errors reported to \verb=n=.
+\item \verb=-max n=: Limit the number of input records to be processed. This 
+will increase speed but decrease to likelihood of finding rare errors.
+\item \verb=-dbg=: Switch on debug mode
+\item \verb=-o=: Save the output in a file with the name 
+  \verb=<filestem>.check_metal=
+\end{optionlist}
+
+% NOTE: only needed for mlee
+%\subsection{Randomizing a data file: \texttt{shuffle}}
+
+%The program \texttt{shuffle} is included in the package both as
+%C++ sources and precompiled binaries for the Linux and Windows
+%operating systems. 
+
+
+
+\subsection{Checking experiment output: \texttt{check\_results.pl}}
+
+A single run of \verb=run_exp= can create many files and 
+a a very large \texttt{.log} file, so it is often hard to
+quickly determine if some algorithm failed and in which fold
+of the experiment. The \texttt{check\_results.pl} makes this easier.
+
+\subsubsection{Synopsis and options}
+
+\begin{verbatim}
+  check_results.pl -h
+  check_results.pl -f stem [-N n] [-l alg1 [-l alg2] ...] [-v] [-d] [-dd] 
+\end{verbatim}
+                     
+\begin{optionlist}
+\item \verb=-f stem= The file stem of the files to check \emph{including} the seed, i.e that part of the filename up and including the seed.
+\item \verb=-N n= The number of folds. If this is not specified the
+program will guess from the files it finds.
+\item \verb=-l alg= Can be specified more than once to provide the 
+list of learning algorithms. If none is specified the program will 
+try to guess the list of learning algorithms from what is there.
+\item \verb=-v= More verbose output.
+\item \verb=-d= Debug -- implies -v.
+\item \verb=-dd= Even more debug messages.
+\end{optionlist}           
+
+
+
+\subsection{Other programs and helper files included in the distribution}
+
+\subsubsection{Calculate quick measures from names files: \texttt{parse\_names}}
+\label{parsenames}
+The \verb=parse_names= program calculates a few measures about the
+number of attributes, and number of values for discrete attributes
+from a
+names file. These measures are included in the \texttt{.results}
+file. 
+ 
+\begin{verbatim}
+  parse_names -f namesfile 
+\end{verbatim}
+
+The output shows:
+\begin{optionlist}
+\item \verb=Type_data=: The type of data file: \verb=class= or \verb=regr=
+\item \verb=N_continuous_attr=: The number of numeric attributes
+\item \verb=N_discrete_attr=: The number of nun-numeric attributes
+\item \verb=N_total_discrete_vals=: The total number of values added 
+  up over all discrete attributes.
+\item \verb=Avg_discrete_vals=: The average number of values over
+  all discrete attributes.
+\item \verb=Log_discrete_combinations=: The natural logarithm of
+  the product of the number of values of all discrete attributes
+  ($\log(\Pi_1^k |a_i|)$ where $|a_i|$ is the number of values for 
+  discrete attribute number $i$)
+\item \verb=Avg_discrete_combinations=: The value of \verb=Log_discrete_combinations= divided by the number of discrete attributes.
+\item \verb=N_classes=: The number of classes.
+\end{optionlist}
+
+\subsubsection{Select a subset of features: \texttt{project}}
+
+This script selects a list of attributes from the input files specified
+by the infilestem and writes a set of output files specified by the outfilestem:
+
+\begin{verbatim}
+  project infilestem outfilestem attrlist
+\end{verbatim}
+
+\verb=attrlist= should be a comma-separated list of attribute numbers,
+where numbering starts with one. To pass this as a single argument
+it might be necessary to enclose the list in single or double quotes
+(depending on the shell you are using).
+
+The script expects a \texttt{.data}, a \texttt{.names}, and a 
+\texttt{.test} file to exist and will create the corresponding 
+output files.
+
+NOTE: The script uses the \texttt{cut} command internally to 
+select the attributes. Many preinstalled \texttt{cut} commands
+only allow for a small number of fields and short records to be
+processed. Therefore, for most databases, the GNU-cut command
+or an equivalent version without these limitations should be
+used. You can specify the path to the \texttt{cut} command 
+in the \texttt{config.pm} configuration file if it should 
+differ from the one in the binary path.
+
+\subsubsection{Sample interface scripts}
+
+% run_cla_TEMPLATE/basedef/basedef200/baserand/c45rules/
+%   c45tree/c50boost/c50rules/c50tree/clemMLP/clemRBFN/
+%   lindiscr/ltree/mlcdef/mlcib1/mlcnb/ripper
+
+The \texttt{scripts} subdirectory in the \eenameshort{} 
+distribution contains several interface scripts for 
+classification learning algorithms, regression learning
+algorithms, preprocessing algorithms and landmark measurement
+algorithms. These files can be used to adapt \eenameshort{}
+to other learning algorithms by using them as templates.
+
+The following interface scripts for classification learning
+algorithms are included:
+\begin{optionlist}
+\item \verb=run_cla_TEMPLATE= A template file that is explained 
+  in greater detail in Section~\ref{adapt}.
+\item \verb=run_cla_basedef=, \verb=run_cla_basedef200=:
+An interface to the \texttt{baseclearn} learning 
+algorithm, which essentially ``learns'' the most frequent class
+from the input database. The \texttt{basedef200} interface
+runs the \texttt{baseclearn} learning algorithm for only the
+first 200 records in the database. The learning algorithm
+is available for download from \url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#baseclearn}.
+\item \verb=run_cla_baserand=: Uses the \texttt{baseclearn} learning algorithm
+internally, but uses
+a random class label determined from the names file instead 
+of the most frequent one.
+\item \verb=run_cla_c45rules=, \verb=run_cla_c45tree=: 
+An interface to a modified
+version of the \texttt{c4.5} and \texttt{c4.5rules} programs. 
+The modified version of c4.5 is available from \url{http://www.ai.unvie.ac.at/~johann/c45oefai} (The modified version adds several new features, but 
+the necessary features are: portability to Win32 and a program to
+assign class labels to a test dataset)
+% TODO availability
+\item \verb=run_cla_c50boost=, \verb=run_cla_c50rules=, \verb=run_cla=c50tree=
+These are interface scripts to the commercially available C50 learning
+algorithm, a successor of c4.5. The programs are available at 
+\url{http://www.rulequest.com}. You also need a modified 
+version of the program that assigns the class labels, which is
+available at \url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#c5test}.
+\item \verb=run_cla_clemMLP=, \verb=run_cla_clemRBFN=
+  These are interface scripts to the Clementine learning algorithms
+ MLP and RBFN, respectively. The interface  scripts use the
+program \verb=run_clem= internally to call the Clementine learning 
+algorithm in batch mode. See the description of that program for
+details.
+\item \verb=run_cla_lindiscr= The interface to the linear discriminant
+ algorithm \texttt{LinDiscr}. (availabilty details?)
+\item \verb=run_cla_ltree= The interface to the linear tree learning 
+algorithm \texttt{Ltree} (availabilty details?)
+\item \verb=run_cla_mlcib1= The interface to a 1NN learning algorithm
+that is based on the MLC++ machine learning library (availability?)
+\item \verb=run_cla_nb= The interface to a naive-bayes learning algorithm
+  that is based on the MLC++ machine learning library
+\item \verb=run_cla_ripper= The interface to the \texttt{ripper}
+learning algorithm. The program is available from  ???
+\end{optionlist}
+
+The following interface scripts for regression learning algorithms 
+are included:
+
+\begin{optionlist}
+\item \verb=run_rla_baggedrt= The interface script to the regression
+tree algorithm \texttt{rt4.1}. Available from ????
+\item \verb=run_ral_cart= The interface to the cart learning algorithm
+that is implemented in \texttt{rt4.1}.
+\item \verb=run_rla_clemMLP=, \verb=run_rla_clemRBFN= The interface 
+to the MLP and RBFN learning algorithms of Clementine. 
+\item \verb=run_rla_cubist= The interface to the \texttt{cubist}
+regression rule algorithm, available from \url{http://www.rulequest.com}
+You also need a modified 
+version of the program that predicts new values, which is
+available at \url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test}. 
+\item \verb=run_rla_cubistdemo= The interface to the demo version of the 
+\texttt{cubist} program (will only process a limited number of records)
+You also need a modified 
+version of the program that predicts new values, which is
+available at \url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test}. 
+\item \verb=run_rla_kernel= The interface to the kernel regression
+learning algorithm that is implemented in \texttt{rt4.1}
+\item \verb=run_rla_lr= The interface to a linear regression model
+learner that is implemented in \texttt{rt4.1}.
+\item \verb=run_rla_mars= The interface to the \texttt{mars}
+learning algorithm (availability?)
+\item \verb=run_rla_rtplt= The interface to the ??? learning algorithm
+that is implemented in \texttt{rt4.1}
+\item \verb=run_rla_svmtorch= The interface to the support 
+vector machine algorithm \texttt{svmtorch}, available from ???
+\end{optionlist}
+
+The following interface scripts for measuring/landmarking algorithms
+are included:
+
+\begin{optionlist}
+\item \verb=run_cma_lindiscr= This interface to the linear discriminant
+algorithm \texttt{LinDiscr} (see classification learning algorithm interfaces).
+\item \verb=run_cma_lm1= (experimental)
+\item \verb=run_cma_mlcnb= Use the \texttt{mlcnb} learning algorithm
+as a landmark.
+\item \verb=run_cma_nodes= This interfaces to the \texttt{landmarks.pl}
+script that calculates several landmarks. See below a more detailled
+description of \texttt{landmarks.pl}
+\end{optionlist}
+
+The following interface scripts for preprocessing algorithms are
+included:
+
+\begin{optionlist}
+\item \verb=run_cpa_disc= The interface to the discretization program
+\texttt{discretiser}. The interface script also needs the 
+wrapper script \verb=disc_wrapper.perl=. Both programs are available from
+????
+\item \verb=run_cpa_fselC50T= The interface to a simple feature selection
+algorithm that uses the \texttt{c5.0} decision tree learning algorithm
+for a quick guess to find relevant attributes. The script also needs the
+\texttt{atrib\_list} program  and the \texttt{project} program internally.
+The \texttt{atrib\_list} program is available from \url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#atrib_list}.
+\item \verb=run_cpa_fselQ1= The interface to a simple feature selection
+algorithm that compares the class-posterior means of attributes
+to guess their relevance, \texttt{fselQ1}. The program is available from 
+\url{http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#fselQ1}.
+The interface uses the \texttt{project} program internally.
+\end{optionlist}
+
+\subsubsection{The Clementine command line interface: \texttt{run\_clem}}
+
+The \texttt{run\_clem} program simplifies the use of Clementine
+learning algorithms from the command line.
+The program analyzes the input files and creates the necessary
+information to modify a template Clementine stream file which 
+is then used in a batch-mode run of Clemeninte.
+The \texttt{script} directory contains stream templates for 
+the learning algorithms MLP, RBFN and C5, these are called
+\texttt{c5.str}, \texttt{mlp.str}, and \texttt{rbfn.str}.
+
+WARNING: the method described has only been tested with version 5.0.1.
+There was an unresolved problem whith the version 5.1 when it first
+came out but this has not been rechecked since (which????)
+
+\begin{verbatim}
+  run_clem -h 
+  run_clem -f filestem -m method {-train|-test} [-p n|c] [-d path] 
+    [-r stem] [-cmd cmd] [-nc] [-i] [-s seed] [-c4] [-v] [-vl]
+\end{verbatim}
+
+\begin{optionlist}
+\item \verb=-f filestem=: The input filestem - there must be a \texttt{.names}
+and a \texttt{.data} file for training mode, or a \texttt{.names} and a
+\verb=-m method=: The complete filename (including the path if necessary) of the stream file template to be used.
+\item \verb=-train | -test=: Indicate training or test mode. In training mode,
+a model file is created, in test mode, the model file is used to create
+a file containing the predicted values for the target variable.
+\item \verb=-p n|c=: This is needed internally for modifying the 
+stream file. Usually it can be guessed from the input names file.
+Use ``n'' for numeric and ``c'' for discrete target variables.
+\item \verb=d path=: The directory where generated files should be stored.
+These are the modified stream files, the model file, and the generated
+``analysis'' and ``matrix'' files.
+\item \verb=r stem=: The filestem to use for the generated files. The default 
+is \verb=originalstem>.<method>=.
+\item \verb=-cmd cmd=: The command to use to call the Clementine program
+(default: \texttt{clementine}).
+\item \verb=-nc=: Do not remove temporary files after termination -- useful for debugging.
+\item \verb=-i=: Interactive -- run the generated stream in an interactive
+Clementine session, invoking the Clemetine GUI. This can help with 
+finding problems and checking if everything is done correctly.
+\item \verb=-s seed=: A random seed - this can be used for streams that
+need a randomization seed internally.
+\item \verb=c4=: Accept data and test files where the records are
+terminated by a dot (if not specified: dont expect/accept the terminating dot)
+\item \verb=v=: Verbose output
+\item \verb=-vl=: Show logfile and verion info but not all the info 
+that is shown with the \texttt{-v} option.
+\end{optionlist}
+
+\subsubsection{Calculate landmarks: \texttt{landmark.pl} }
+
+This Perl--script calculates landmark measurements for a database and is 
+used internally by the landmark interface scripts.
+
+\section{Adapting \eenameshort{}}
+\label{adapt}
+If you want to use \eenameshort{} with other learning algorithms
+than those for which interface scripts (see~\ref{interface}) already 
+exist, you need to create interface scripts for that purpose.
+
+In a similar way, you can also add additional preprocessing algorithms. 
+
+Adapting \eenameshort{} to additional algorithms essentially
+consists in adding the necessary interface programs. The
+best way to do this is to copy and adapt an existing interface
+program for a similar algorithm. The interface programs
+are written in Perl, some knowledge of Perl
+will be necessary to create a new interface program.
+
+For each type of algorithm, there is a heavily
+commented template file that can be used as a basis for
+a new interface program.
+
+In order to run a certain list of interface scipts automatically
+(insteading of specifying them using the \texttt{-l} option
+of the \texttt{run\_exp} script), edit the \texttt{config.pm}
+script and change the lists of script names given there for
+the default classification, default regression, default 
+classification data--measurement and default regression
+data--measurement algorithms.
+
+\subsection{Adding Learning Algorithm Interface Scripts}
+
+In order to be usable with \eenameshort{}, the folliwng conditions
+must be fulfilled:
+\begin{itemize}
+\item The learning algorithm should be able to read a training
+  file that is in a format similar to the format of the \texttt{data} file 
+described in Section~\ref{dbformat}.  Similarily, the meta--data 
+required be the algorithm should be in a from that can be derived from
+the names file. Unless the learning algorithm can use the data and names
+files directly, it will  be necessary to include a conversion filter
+in the interface program.
+\item The learning algorithm should generate a persistent model file
+that can be used to later assign values for the target variable for
+new data records.
+\item It should be possible to separately call the training and 
+prediction (testing) phases of the algorithm.
+\item The prediction/testing function of the algorithm should
+take the model file generated in the training phase and a \texttt{data}
+file and generate a file that contains only the predictions for each
+of the cases in the \texttt{data} file, one prediction in each line.
+\item NOTE: the prediction function of the algorithm should output
+the prediction error which needs to be captured in the interface 
+script and returned to the main driver program \verb=run_exp=. 
+This program will regard a learning algorithm for which no prediction
+error is returned as failed and abort the testing for that learning 
+algorithm. If the prediction function does not output the error,
+a dummy value must be used unless the something went wrong (see below).
+The correct prediction error will be calculated by the \verb=run_stats=
+program and be available in the \verb=.stats= file anyway.
+\end{itemize}
+
+For classification learning algorithms refer to the template
+\texttt{run\_cla\_TEMPLATE}, for regression learning 
+algorithms refer to \texttt{run\_rla\_TEMPLATE}.
+
+
+\begin{figure}[!hptb]
+{\footnotesize
+\begin{verbatim}
+#!/usr/local/bin/perl
+01 use vars qw($pgmname $pgmpath $trainargs %k $args 
+02             $testargs  $predfile  $filestem);
+03 use Getopt::Long;
+04 use File::Basename;
+05 $pgmname = $0;$pgmpath = dirname($pgmname);
+06 push(@INC,$pgmpath);
+07 require run_lib;
+08 require config;
+09 beginLA("LANAME","VERSION"); 
+10 startCMD("mylearner -f $filestem -model $filestem.$la.model 
+   $args $trainargs");
+11 my $mytmp1 = "";
+12 while (defined($_=getLine())) {
+13   if (/^Size: ([0-9]+)/) {  
+14     $mytmp1 = $1;   ## remember the number $
+15   }
+16 }
+17 $k{"Size"} = $mytmp1;
+18 $k{"Traintime"} = stopCMD();
+19 startCMD("mylearner -test -f $filestem -model $filestem.$la.model 
+   -p $predfile $args $testargs");
+20 while (defined($_=getLine())) {
+21   if (/^Error rate:\s+([0-9\.]+)/) {
+22     $k{"Error"} = $1;
+23   }
+24 }
+25 $k{"Testtime"} = stopCMD();
+26 rmFile("$filestem.tmp");
+27 endLA();
+\end{verbatim}
+}
+\caption[]{The \texttt{run\_cla\_TEMPLATE} file}
+\label{fig:template1}
+\end{figure}
+Figure~\ref{fig:template1} shows the \texttt{run\_cla\_TEMPLATE}
+file with all comments removed and line numbers added. To adapt
+the file to some learning algorithm, copy it to a file 
+\texttt{run\_cla\_xxx} (for a classification algorithm) where
+\texttt{xxx} is the name of the learning algorithm.
+Follow the advice given in the comments in the template file to
+program the interface file for your learning algorithm.
+
+Here a few notes on adapting the template:
+\begin{itemize}
+\item Lines 1 to 8 should be kept untouched
+\item The LANAME in  line 9 should be the same as the algorithm 
+name portion of the interface file (i.e. the same as the 
+\texttt{xxx} part in \texttt{run\_cla\_xxx}). VERSION should 
+reflect the version of the interface file (if you want to 
+diferenciate between different versions of the learning algorithm,
+include that version info in the LANAME, e.g. \texttt{myla2.1})
+\item Line 10 should contain the command needed to call the 
+training phase of the learning algorithm. The variable \texttt{\$filestem}
+will contain the filestem of the three files that are prepared before
+each invocation of the interface file (the data, test, and names file).
+The variables \texttt{\$args} and \texttt{\$trainargs} are the values
+passed via the options \texttt{-a} and \texttt{-at} respectively.
+\item Lines 12 to 15 show a loop that will process each of the lines
+that is output to stdandard output or standard error by the learning
+algorithm. Within the loop you can search the output for
+(numeric)  information
+that you want to pass back to \texttt{run\_exp} which will 
+automatically record them in the \texttt{.results} file and 
+calculate averages. NOTE: you must process all output lines
+in such a while loop, using the \verb|defined($_=getLine())|
+condition, or the interface will not work properly! If you do not
+need any information from the output, simply remove lines 13 to 15.
+\item Line 17 shows how to pass back the information to the 
+\texttt{run\_exp} program: simply assign the value to 
+a hash variable where the hash key is the desired name of the variable.
+\item Lines 18 should be kept unchanged: it 
+shows how to finish the \texttt{startCMD} block
+that was opened in line 10 and record the time used up by the
+training phase of the learning algorithm. 
+\item Line 19 starts the evaluation/prediction phase of the learning
+algorithm by calling a different program or the same program with
+the apropriate options for prediction. The variable \texttt{\$testargs}
+will contain the value for the option \texttt{-ae}.
+\item Lines 20--24 show how to process the standard output of the
+algorithm. As for the training phase all lines must be processed
+that way. In addition, \texttt{run\_exp} will only work correctly
+if you pass back the prediction error in the variable \texttt{Error}
+as shown. If your algorithm does not output the prediction error 
+to standard output, you can work around the problem by passing
+back an arbitrary value and ignoring the errors in the \texttt{.result}
+file later, using the errors from the \texttt{.stats} file instead
+(this is recommended anyway, since the errors in the \texttt{.stats}
+file are more accurate)
+\item Line 25 finishes the \texttt{startCMD} block for the prediction
+phase and should be kept unchanged.
+\item Line 26: the \texttt{rmFile} function should be used to 
+remove any temporary and working files the algorithm might have created.
+\item Line 27 must be kept unchanged.
+\end{itemize}
+
+
+
+
+\subsection{Adding Preprocessing Algorithms}
+
+Preprocessing algorithms will change the database before the learning 
+algorithm is applied. For each \verb=run_exp=  experimentation run,
+you can optionally specify one preprocessing algorithm. That algorithm 
+will be called for each fold of the crossvalidation.
+In order for \verb=run_exp= to be able to call the preprocessing
+algorithm, an interface script must be provided.
+
+Preprocessing algorithms, like learning algorithms, have to 
+process the training and testing sets for each fold separately. 
+A typical interface script will contain two calls to the preprocessing
+program, one for the training file  and one for the test file.
+
+Note: The preprocessing algorithm should never use information from
+the class labels in the test set! The preprocessing algorithm should
+always carry out exactly the same preprocessing transformation on the
+test set as on the training set. If the preprocessing algorithm
+adapts itself to the input dataset you must take care that this
+does not happen when the test set is processed!
+For example, a class-aware 
+discretization algorithm should discretize the numeric attributes
+in the test set in exactly the same way as it discretizes the 
+attributes in the trainingset instead of calculating new 
+discretization intervals, based on the specific information in the test
+set.
+
+This is important, because of the practical reason that otherwise
+the content or format of the generated training and test files could
+be incompatible, but more importantly, because of the theoretical 
+reason that anything else would be cheating -- using information
+from the test set that should be regarded as completely 
+unavailble for the estimation procedure.
+
+As with the interface scripts for learning algorithms, use
+one of the scripts included in the package as a template.
+
+%TODO: what is different when this gets called, what options are used,
+% what output is processed by run_exp
+
+\section{Running Experiments}
+\label{exps}
+
+First make sure the data is in standard format (see Section~\ref{dbformat}).
+The main experimentation program by default does a quick check,
+but you should use the checking program \texttt{check\_database.pl}
+ on the full
+database. Depending on the format your data is originally in,
+the steps to convert it into METAL-format might be very different.
+
+Here are some hints what kind of conversion might be necessary:
+
+\begin{itemize}
+\item It might be necessary to convert fiels from DOS to UNIX format
+\item The database should be available in a format that is as close
+as possible to ``CSV'' (comma-separated values) format. Many programs
+that export CSV format will put non-numeric values in quotes; these
+have to be removed for METAL format. 
+\item Be careful that removing
+special characters originally used for non-numeric values but
+not allowed in the METAL format will not cause several different
+values to get mapped to one value! 
+\item Missing values are often coded as ``empty strings''.
+Missing values must be coded as question marks for METAL format,
+both for numeric and non-numeric fields.
+\end{itemize}
+
+\eenameshort{} lets you choose rather freely how to run the necessary 
+experiments: run different algorithms on different machines, run
+different databases on different machines, 
+run different algorithms on the same machine but at different times etc.
+
+You should consider the following points when planning the experiments:
+\begin{itemize}
+\item For each experiment  you should have a separate output directory.
+If you run different algorithms for the same database at different times
+on the same machine, you can simply reuse the output directory: the
+new target/prediction files will be added to the directory, and the 
+\texttt{.results} and \texttt{.log} files will be appended with the
+new data (unless the option \texttt{-o} for \verb=run_exp= is specified, which 
+will overwrite the olde \texttt{.results} and \texttt{.log} files.
+\item If you run experiments on the same file system, take care that
+different experiments will not use identical files to prevent data loss.
+\verb=run_exp= uses temporary file names for some files to prevent this,
+but output files might still be identical.
+\item If you run some algorithms for a database on machine A and 
+other algorithms on machine B it is advisable to use different
+output directories for these runs and then merge the created files.
+Results must be merged by copying together the generated \texttt{.pred},
+\texttt{.target}, \texttt{.dct} files and concatening together
+ all \texttt{.results} files to the final \texttt{.results} file and 
+all \texttt{.log} files to the final \texttt{.log} file.
+The script \verb=exp_append_results= will do this for a
+source and a target directory: the source directory must contain
+a subdirectory for each filestem for which an experiment was run.
+The destination directory will contain a subdirectory for each filestem.
+Copying together is done by repeatedly compying partly results for several
+filestems from different source directories to the same 
+destination directory.
+\item Running different algorithms on different machines will it make
+harder to compare CPU time measurements even for the same file stem.
+\item The simplest way to carry out an experiment is to run
+all  algorithms for a filestem on the same machine in a single run
+of \verb=run_exp=.
+\end{itemize}
+
+%How to collect the data from runs that were split up
+%between different machines. Pointer to scripts that
+%help doing this.
+
+%How to recreate the stats file after collecting the
+%prediction data.
+
+%Hot to create a timing normalization table if necessary.
+
+%Extracting the metadata from the result files and 
+%optional timing normalization. Pointer to 
+%documents that explain what metadata to extract 
+%for METAL.
+
+
+\section{Structure and Organization of Output Data}
+\label{output}
+\subsection{The log file}
+
+For each experiment a log file with the name \texttt{filename\_seed.log}
+is created. The log file contains the log of what \texttt{run\_exp} 
+has been doing. If \texttt{run\_exp} is invoked several times for
+the same filestem and seed in the same output directory, each 
+new log will be added to the end of any existing one, unless
+the option \texttt{-o} (overwrite) has been given to the 
+\texttt{run\_exp} command. The log will contain more information
+from the \texttt{run\_exp} command if the \texttt{-d} (debug) option 
+was given and will also include debuggin information from the 
+interface scripts called if the option \texttt{-lad} was given.
+
+
+\subsection{The \texttt{results} file}
+
+The \verb=:results= file contains  a group of variables that
+describe the experiment and database, and another group of varibales
+that contain information for each combination of algorithm, fold, and
+repetition. 
+
+\begin{optionlist}
+\item \verb=File=: The full path and filestem to the database processed.
+\item \verb=Filestem=: The filestem without any path as used in the output
+  files. If a suffix is added to the output file names (e.g. when
+  a preprocessing algorithm is used), that suffix will be included here.
+  In other words, this is the part of the filestem that will be used
+  in the output files before the \verb=_<seed>= part.
+\item \verb=InFilestem=: The filestem without any path as specified
+  for the \verb=-f= command line option of \verb=run_exp=. This will 
+  never contain any suffixes.
+\item \verb=ModelType=: Either \verb=classification= or \verb=regression=
+\item \verb=Start=: The start date and time of the experiment, in standard UNIX date format.
+% TODO: this should get changed to something simpler like YYYYMMDDHHMM
+\item \verb=User=: The login name of the user running the experiment
+\item \verb=Host=: The (short) hostname of the machine on which the 
+experiment was run.
+\item \verb=OS=: The (short) name of the operating system.
+\item \verb=System=: More detailled information about the operating 
+system, version and architecture.
+\item \verb=CPUlimit=: The CPU time limit specified for this experiment; the
+value 0 means no limit.
+\item \verb=Seed=: The random seed used for the randomization of the
+crossvalidation folds.
+\item \verb=Version run_exp=: The program version of \verb=run_exp= 
+\item \verb=Samplespec: n/n=: The values given (or the default values) for 
+the \texttt{-samp} and \texttt{-hsamp} options of \verb=run_exp=.
+\item \verb=Preprocessing=: The name of the preprocessing algorithm, or empty
+\item \verb=DBSize=: The number of records in the \texttt{.data} file of the 
+input database.
+\item \verb=DBdataMD5=: The MD5 key of the \texttt{.data} file.
+This can be used to check if exactly the same file has been used for
+different experiments.
+\item \verb=DBnameMD5=: The MD5 key of the \texttt{.names} file.
+\item \verb=Type_data==, \verb=N_continuous_attr=, \verb=N_discrete_attr=,
+\verb=N_total_discrete_vals=, \verb=Avg_discrete_vals=, \verb=Log_discrete_combinations=, \verb=Avg_discrete_combinations=, \verb=N_classes=: These values 
+are the output of the \texttt{parse\_names} program and are explained
+in Section~\ref{parsenames}.
+\item \verb=Learner=: For each learning algorithm there is one line with
+this key, giving the name of the learning algorithm.
+\item \verb=Learner_Parameters <learner>=: for each learner a line
+giving all the parameters as specified on the \verb=run_exp= command line.
+\item \verb=DCT_Totaltime=: The total CPU time measured for the DCT algorithm,
+if it was run.
+\item \verb=Evalmethod=: The evaluation method used -- one of 
+\texttt{xval}, \texttt{holdout}, \texttt{cstho}, or \texttt{loov}.
+\item \verb=Evalparms=: The parameters used for the method, separated
+by commas. In addition, for each method, there is a special set of 
+keywords that individually give the values for the evaluation parameters,
+e.g. for \texttt{xval}: \verb=XVAL_folds= and \verb=XVAL_repeat=.
+\item \verb=DBSizeTrain <r> <f>=: The actual size of the training data
+for repetition \verb=<r>= and fold \verb=<f>=.
+\item \verb=DBSizeTest <r> <f>=: The actual test size per repetition/fold.
+\item \verb=Error <r> <f> <alg>=: The holdout error (error of the
+learned model on the test set) for algorithm \verb=<alg>= 
+for that repeition/fold. This is the error as reported from the interface
+script, not as measured by the \verb=run_stats= script from the target/predictions files.
+\item \verb=Resubsterror <r> <f> <alg>=: The resubstitition error (error
+of the model on the training set), if reported by the interface script.
+\item \verb=Size <r> <f> <alg>=: The model size, ifand as
+ reported by the interface
+script. 
+\item \verb=Testtime <r> <f> <alg>=: The time needed for the testing step
+in CPU seconds, as reported by the interface script.
+\item \verb=Traintime <r> <f> <alg>=: The time needed for the training step
+in CPU seconds, as reported by the interface script.
+\item \verb=Totaltime <r> <f> <alg>=: The time needed for both the training
+and testing step, 
+in CPU seconds, as reported by the interface script. For some learning 
+algorithms it might not possible easily to get individual training and 
+testing times since they carry out both steps in one program run. For
+this only the \verb=Totaltime= value will be different from the missing
+value indicator.
+\item \verb=Status <alg>=: The final status of the experiment for this
+algorithm. This is estimated from the output of the interface scripts.
+Either \texttt{ok} if everything worked well, \texttt{timeout} if 
+the CPU time limit was ???, \texttt{unknown} if the status could not 
+be determined, and \texttt{nok} if something went wrong (e.g. the algorithm
+crashed).
+\item \verb=Error <alg>=: The final average error as calculated 
+from the individuals error reported by the interface script.
+\item \verb=Resubsterror <alg>=: The final average Resubstitution error.
+\item \verb=Size <alg>=: The final average model size.
+\item \verb=Testtime <alg>=: The final average testing time.
+\item \verb=Traintime <alg>=: The final average training time.
+\item \verb=Totaltime <alg>=: The final average total time.
+\item \verb=Stop=: The date and time when the experiment was finished, 
+in standard UNIX date format.
+\end{optionlist}
+    
+\subsection{The \texttt{.stats} file}
+
+The stats file contains all the measures that get calculated from
+the \texttt{.pred} and \texttt{.targets} files by the \verb=run_stats=
+program (the \verb=run_stats= program gets called automatically
+at the end of \verb=run_exp= unless explicitly supressed).
+
+The variables in the \verb=.stats= file 
+for classification--type experiments:
+
+\begin{optionlist}
+\item \verb=Error <alg> <rep> <fold>=: The error of the model learned by
+algorithm \verb=<alg>= from 
+the training set and evaluated on the testset 
+for repition \verb=<rep>= and fold \verb=<fold>=.
+\item \verb=Error <alg>=: The error averaged over all classifications
+from all folds and repitions. Note that this will be different from the
+average of the fold/repitions Errors above, if fold sizes are not
+the same for all folds.
+\item \verb=StdDevOfError <alg>=: The standard deviation of the errors
+for all folds/repitions.
+\item \verb=StdErrOfError <alg>=: The standard error of the errors for 
+all folds/repitions (i.e. the standard deviation divided by the squareroot
+of the number of errors)
+\item \verb=Correct-Wrong <alg1> <alg2>=: The number of cases where
+  the classification was correct for algorithm \verb=<alg1>= and wrong
+  for algorithm \verb=<alg2>=.
+\item \verb=Wrong-Correct <alg1> <alg2>=: The number of cases where
+  the classification was wrong for algorithm \verb=<alg1>= and correct
+  for algorithm \verb=<alg2>=.
+% TODO: which of these is the correct, which the old one?
+\item \verb=pvalMcNemar <alg1> <alg2>=: The p-value of the McNemar
+test for identical distributions of wrong/correct and correct/wrong
+counts.
+\item \verb=pvalPairedTTest <alg1> <alg2>=: The p-value of a 
+paired t-test for the errors.
+\item \verb=p-val_McNemar <alg1> <alg2>=: OBSOLETE and only kept for 
+backward compatibility!
+\end{optionlist}
+
+The variables in the \verb=.stats= file 
+for regression--type experiments:
+
+\begin{optionlist}
+\item \verb=ErrorSSE=: Sum of squared errors
+\item \verb=ErrorMSE=: Mean squared error
+\item \verb=ErrorRMSE=: Root mean squared error
+\item \verb=ErrorNMSE=: Normalized mean squared error
+\item \verb=ErrorMAD=: Mean absolute differences
+\item \verb=ErrorNMAD=: Normalized mean absolute deviation
+\item \verb=RSquare=: correlation coefficient between targets and predictions
+\item \verb=p-MeanDiffZero <alg1> <alg2>=: p value for the test for equal means
+\end{optionlist}
+
+\subsection{The \texttt{.dct} file}
+
+The DCT program and its output are documented in \cite{dct}.
+% TODO: for mlee, document gsi/dc here!
+
+\subsection{The targets files}
+
+For each fold of the crossvalidation, a file containing only
+the targets of the test file for this fold gets stored 
+in the results directory. The name of this file
+is of the form \verb=<filestem>_<seed>_<fold>.targets=.
+
+These files are necessary for the \verb=run_stats= program
+to calculate error estimates and similar measures.
+% TODO for mlee also mention alltargs file!
+\subsection{The prediction files}
+
+For each combination of learning algorithm and fold of the crossvalidation,
+a file containing only
+the predictions of this learning algorithm for the test file gets stored 
+in the results directory. The name of this file
+is of the form \verb=<filestem>_<seed>_<fold>_<alg>.pred=.
+
+These files are necessary for the \verb=run_stats= program
+to calculate error estimates and similar measures.
+
+% TODO for mlee: also mention allpreds file!
+
+\section{Solutions to frequent problems}
+
+\paragraph{The experiment fails and I cannot figure out why?}
+If something goes wrong, always carefully look into the log file.
+If there is no hint what went wrong, repeat the experiment with 
+the added options \texttt{-d} and \texttt{-lad}. This will
+create a \emph{huge} logfile, since all the output of all 
+learning algorithms will be included, but usually contains
+the crucial information about what went wrong. 
+Some things to check for: are all programs that are needed from 
+the interface scripts in the binary search path? The helper 
+programs too? Is the directory used to store temporary files
+on a device that has enough free space to hold all the temporary files?
+Are there leftover temporary files from earlier runs that clobber 
+up space?
+
+\paragraph{A CPU timeout was specified, but the algorithms run much longer?}
+On some systems -- mainly Windows -- the CPU limitation mechanism does not
+work. Unfortunately there is no solution for this as of now.
+
+\paragraph{A CPU timeout was specified, but the algorithm seems to never stop?}
+Apart from the cause given in the previous problem, it is also possible
+that the learning algorithm or some other algorithm that gets called
+(indirectly via interface scripts) from \verb=run_exp= is waiting
+for input from the standard input stream. In that case, the algorithm is
+halted, does not consume CPU time and thus, never stops.
+One reason for this behaviour could be that a licensed learning 
+algorithm is requesting a license code.
+
+\paragraph{It seems for some of the folds there are empty train/test files?}
+If the database is very small and there are many different class labels,
+the \verb=shuffle= program will not
+be able to do stratification correctly without leaving some of 
+the files empty. In that case, simply turn off stratification
+(option \verb=-start 0=).
+
+
+\section{Glossary of Frequently Used and Exotic Terms}
+
+\begin{description}
+\item[advisor]: \see{data mining advisor}
+\item[base database]: a database that is used for experimentation
+  to obtain \see{metadata}
+\item[data characteristics]: the collection of measurements  obtained
+for a base database by the \see{DCT} program and \see{landmarkers}.
+ A subset of these
+characteristics are used as meta--data. 
+\item[database measurements]: \see{Data characteristics} obtained by the 
+\see{DCT} program.
+\item[DCT program]: A program that calculates many different database
+measurements from a database. For more information on that program
+see \cite{dct}.
+\item[data file]: A comma separated variables (CSV) file that
+contains the actual data for a database. Each line contains
+one database entry as a comma separated list of ASCII values.
+See Section~\ref{dbformat} for details.
+\item[data mining advisor]: A web-based application that uses 
+meta--data obtained with \eenameshort{} to build a model that will
+give algorithm ranking recommendations for new databases.
+\item[experiment]: The process of carrying out a complete run of 
+evaluation steps for all learning algorithms for one base database.
+\item[filestem]: the common part of the the two files (the "data--"
+and the "names" -- file) that together are used to describe a 
+database. This is the filename without the file extension.
+See Section~\ref{dbformat}.
+\item[interface script]: A script that makes a learning algorithm program
+usable with the main \eenameshort{} experimentation program, \verb=run_exp=.
+\item[landmark]: A \see{database characteristic} calculated by running 
+a fast learning algorithm on the database.
+\item[meta--data]: a collection of data describing \see{base databases} and
+the performance of learning algorithms on these base databases.
+\item[meta--database]: a collection of meta--data that is used for
+  \see{meta--learning}
+\item[ranking]: A recommendation of the \see{data mining advisor} is
+given as a ranking: 
+ a ranked list of algorithms - the most recommended first,
+the least recommended last.
+\item[results files]: The collection of all files that are generated
+as a result of an experiment: the \texttt{.stats} file, the 
+\texttt{.results} file, the \texttt{.dct} file, and others 
+% TODO!!!
+(see Section~\ref{output}).
+\item[.result file]: One of the files that gets generated during an
+experiment. The file name extension of that file is \texttt{.results},
+hence the name.
+\end{description}
+
+
+%\section{References}
+
+
+\begin{thebibliography}{99}
+\bibitem[Petrak 2002a]{Petrak:2002a}
+  Petrak J.: The Machine Learning Experimentation Environment (MLEE) -
+    User's Guide and Manual. In preparation.
+\bibitem[Quinlan 1993]{Quinlan:1993}                                %     B5182
+  Quinlan J.R.: C4.5: Programs for Machine Learning, Morgan Kaufmann, Los
+  Altos/Palo Alto/San Francisco, 1993.
+
+\bibitem[DCT doc]{dct}
+  The dct documentation.
+
+\end{thebibliography}
+
+
+\end{document}
+
+
+
+% NOTES:
+% What to do if LA tester doesnt output Error??
+% -> we should change software!!
+
+% What do do if predictor writes to stdout!
+
+% Requirement: prediction must exist for all cases read 
+% (i.e. cannot ignore cases with missing values!)

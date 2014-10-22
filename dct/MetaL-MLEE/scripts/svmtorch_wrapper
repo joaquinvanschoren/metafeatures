@@ -1,0 +1,326 @@
+#!/usr/local/bin/perl
+#
+# SVMTorch_wrapper.perl
+#
+# Rui Pereira
+# 25/09/2000
+#
+# Perl script used as a wrapper for the SVMTorch algorithm
+# It converts the experimental dataset file format to the format used by 
+# the implementation of the SVMT and runs the program to obtain the model file 
+#
+# Changes:
+#   
+#     20/10/2000
+#               - included option for regression 
+#
+#     27/10/2000
+#               - now all attributes are converted to continuous by default
+#                 The -s flag can be used to maintain the old funcionality
+
+$rcsid = '$Id: svmtorch_wrapper,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$version = '$revision: $';
+
+print "\nSVMTorch Wrapper\n";
+print "-------------------\n";
+print "Rui Pereira, LIACC, October of 2000\n$version\n\n";
+
+if (@ARGV<2) {
+    print "Perl script used as a wrapper for the SVMTorch program.\n";
+    print "It converts the experimental dataset file format to the format used by\nthe SVMTorch and then runs the program to obtain the model file\n\n";
+    print "Syntax: $0 InputFileStem ModelOutputFile [-r] [-s] [-k] [-c]\n";
+    print "\n\n"; 
+    print "where:\n";
+    print "-r    Use regression mode (default is classification mode)\n";
+    print "-s    Use continuous attributes only (default is convert and use all)\n";
+    print "-k    Keep temporary files used as I/O by the SVMTorch\n";
+    print "-c    Convert input files only. Do not call SVMTorch\n";
+    exit;
+}
+
+for($i=2; $i<@ARGV; $i++) {
+    if ($ARGV[$i] eq "-k") {
+	$d_flag=1;
+    }
+    elsif ($ARGV[$i] eq "-c") {
+	$c_flag=1;
+    } 
+    elsif ($ARGV[$i] eq "-r") {
+	$r_flag=1;
+    }
+    elsif ($ARGV[$i] eq "-s") {
+	$s_flag=1;
+    }
+}
+
+
+# Input and Output file names
+$data_input_file=$ARGV[0].".data";
+$names_input_file=$ARGV[0].".names";
+
+
+if(!$s_flag) {
+    print "Using full symbolic-continuous conversion\n";
+    $tempstem=$ARGV[0].".cont";
+    if ($r_flag) {
+	system("make_continuous $ARGV[0] $tempstem -r");
+    }
+    else
+    {
+	system("make_continuous $ARGV[0] $tempstem");
+    }
+    $data_input_file=$tempstem.".data";
+    $names_input_file=$tempstem.".names";
+}
+else {
+    print "Only continuous attributes used\n";
+}
+
+# Input and Output temp file names
+# These are the files related to the SVMTorch program
+$data_temp_input_file=$data_input_file.'.temp';
+$model_output_file=$ARGV[1];
+
+
+# Opening input files
+open(INNAMES, $names_input_file) or (print "Can't open $names_input_file: $!\n" and exit);
+open(INDATA,  $data_input_file)  or (print "Can't open $data_input_file: $!\n" and exit);
+open(INDATA_TEMP, ">$data_temp_input_file") or (print "Can't open $data_temp_input_file: $!\n" and exit);
+
+
+
+
+
+#####################
+# Input names file
+
+
+print "Processing the NAMES file...\n";
+
+
+$line=<INNAMES>;
+chop $line;
+@names=split (/\s*[,\.]\s*/ , $line);
+$NR_CLASSES=@names;
+$reg_name=$names[0];
+
+
+foreach $line (<INNAMES>) {
+    if ($line =~ /(.*)\s*:.*continuous.*/) {
+	$NR_NUM_ATTRIB++;
+	push(@num_attrib,$NR_ATTRIB);
+	if (($r_flag) && ($1 eq $reg_name)) {
+	    $reg_number=$NR_ATTRIB;
+	}
+    }
+    $NR_ATTRIB++;
+}
+$NR_ATTRIB++;
+
+close(INNAMES);
+print "Finished processing names file\n";
+
+
+####################
+# Data file
+
+print "Processing the data file...\n";
+
+# First pass
+# Counts the number of examples by counting the lines
+# and calculates the average
+LINE: foreach $line (<INDATA>) {
+    chop $line;
+    next LINE if (!$line);
+    @attribs=split (/\s*,\s*/ , $line);
+    for($i=0; $i<$NR_NUM_ATTRIB; $i++) {
+	$value=$attribs[$num_attrib[$i]];
+	if ($value ne "?") {
+	    $num_attrib_mean[$i]=$num_attrib_mean[$i]+$value;
+	    $num_attrib_mean_count[$i]++;
+	}
+    }
+    $NR_EXAMPLES++;  
+}
+close(<INDATA>);
+for($i=0; $i<$NR_NUM_ATTRIB; $i++) {
+    $num_attrib_mean[$i]=$num_attrib_mean[$i]/$num_attrib_mean_count[$i];
+}
+
+
+
+# Second pass
+# Replaces missing values by the column average and writes the new file
+open(INDATA,  $data_input_file)  or (print "Can't open $data_input_file: $!\n" and exit);
+
+$temp=$NR_NUM_ATTRIB+1;
+if ($r_flag) {
+    $temp=$NR_NUM_ATTRIB;
+}
+print INDATA_TEMP "$NR_EXAMPLES $temp\n";
+LINE: foreach $line (<INDATA>) {
+    chop $line;
+    next LINE if (!$line);
+    @attribs=split (/\s*,\s*/ , $line);
+    for($i=0; $i<$NR_NUM_ATTRIB; $i++) {
+	$index=$i;
+
+	if ($r_flag) {
+	    if ($i == $reg_number) {
+		$index=$NR_NUM_ATTRIB-1;
+	    }
+	    if ($i == $NR_NUM_ATTRIB-1) {
+		$index=$reg_number;
+	    }
+	}
+	    
+	$value=$attribs[$num_attrib[$index]];
+	if ($value eq "?") {
+	    $value=$num_attrib_mean[$index];
+	}
+	print INDATA_TEMP "$value ";
+    } 
+    $value=getindex($attribs[$NR_ATTRIB-1]);
+    
+    if($NR_CLASSES==2) {
+	if($value==0) {
+	    $value=-1;
+	}
+	if($value==1) {
+	    $value=1;
+	}
+    }
+    if (!$r_flag) {
+	print INDATA_TEMP $value;
+    }
+    print INDATA_TEMP "\n";
+}
+
+# First part completed, so close all files
+
+close(INDATA);
+close(INDATA_TEMP);
+
+print "Finished processing DATA file\n";
+print "Converted input data file written as $data_temp_input_file\n";
+
+if($c_flag) {
+    print "Convert only selected. Finished.\n";
+    exit;
+}
+
+print "Process complete.\n\n";
+
+
+# Calls the SVMTorch program
+if ($r_flag) {
+    $commandline="svm_torch -ae -am -rm $data_temp_input_file  $model_output_file";
+    print "Using regression\n";
+}
+else {
+    if ($NR_CLASSES==2) {
+	$commandline="svm_torch -ae -am $data_temp_input_file  $model_output_file";
+	print "Data file only has two classes - using standard classification\n";
+    }
+    else {
+	$commandline="svm_torch -ae -am -multi -m 10  $data_temp_input_file  $model_output_file";
+	print "Data file has more than two classes - using multiclass mode\n";
+    }
+}
+
+
+print "Executing SMVTorch....\n\n";
+print "Using command line:\n";
+print "$commandline";
+print "\n\n";
+
+if ((system($commandline) >> 8) != 0) {
+    print "\n\nSVMTorch program execution failed! Exiting...\n";
+    exit;
+}
+
+
+print "\nSVMTorch program execution complete\n\n";
+
+
+# We need to call the SVMTest program to obtain the training error
+# So we call the SVMTest program with the training file as the test file
+
+print "Calling SVMTest to obtain training error\n";
+if($r_flag) {
+    $commandline="svm_test -ae -am   $model_output_file  $data_temp_input_file";
+    print "Testing in regression mode\n";
+}
+else {
+    if($NR_CLASSES==2) {
+	$commandline="svm_test -ae -am   $model_output_file  $data_temp_input_file";
+	print "Two classes found - standard mode used\n";
+    }
+    else {
+	$commandline="svm_test -ae -am -multi   $model_output_file  $data_temp_input_file";
+	print "More than two classes found - multiclass mode used\n";
+    }
+}
+
+print "Executing SMVTest....\n\n";
+print "Using command line:\n";
+print "$commandline";
+print "\n\n";
+
+if ((system($commandline) >> 8) != 0) {
+    print "\n\nSVMTest program execution failed! Exiting...\n";
+    exit;
+}
+
+
+print "\nSVMTest program execution complete\n\n";
+
+
+
+
+if (!$d_flag) {
+    system("rm -f $data_temp_input_file");
+    system("rm -f $tempstem.data $tempstem.names");
+    print "Temporary files deleted\n";
+}
+
+
+
+sub getindex {
+#    print "$_[0]\n";
+    for($i=0; $i<$NR_CLASSES; $i++) {
+#	print "$names[$i]\n";
+	if($_[0] eq $names[$i]) {
+	    return $i;
+	}
+    }
+    return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

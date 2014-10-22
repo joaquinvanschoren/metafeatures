@@ -1,0 +1,247 @@
+#!/usr/local/bin/perl
+
+my $version = '$Revision: 3.0.2.1 $';
+my $date = '$Date: ';
+my $rcsid = '$Id: run_stats_xlsp,v 3.0.2.1 2002/12/02 23:46:26 johann Exp $';
+
+# run_stats
+# =========
+#
+# pass data for the analysis of experiment results to XLISPSTAT
+# 
+# Author: Johann Petrak (OeFAI)
+#
+
+# TODO: 
+# 2000.07.19: (done 2000.11.17)
+#   passing an invalid prediction file to the LISP program
+#   can cause strange behaviour ... (e.g. ripper puts strange
+#   lines into the prediction file when something went wrong
+#   with the training phase)
+#   So we should check for a valid prediction file, not just
+#   for existance before passing to LISP
+
+# CHANGES:
+#   2.8 2001.08.05: changed stats.lsp
+#   2.7 2001.07.05: add number of folds and repetitions to 
+#       generated LISP code (needed for the claculation of
+#       measurement pvalPairedTTest)
+#   2.6 2000.11.24: added error message if something goes wrong
+#       with starting the xlispstat command
+#   2.5 2000.11.22: support for paired tests for regression added
+#   2.4 2000.11.17: error handling for all functions that
+#       depend on prediction or target files added. The
+#       Apropriate code is passed to the LISP program and
+#       output from LISP is checked for lines starting with
+#       "Error". Note that now all error-handled expressions
+#       also get printed out when *verbose* is set in the LISP code.
+#   2.3 2000.11.15: Allow to pass verbose/debug request to lisp code
+#   2.2 2000.07.21: Finding fold 0 files was programmed incorrectly
+#       and also found fold 20, 30 ... files. Bug correted
+#   2.1 2000.07.10: option -x removed, this is now the default!
+#       The xlispstat-routine will create the stats file
+#   2.0 2000.05.23: complete reimplementation -- most of the work
+#       is now done in LISP while this program just generates the
+#       apropriate LISP-code for a specific experiment
+#       The LISP-code resides now in a seperate file "stats.lsp"
+#       that must be located in the same directory as this
+#       script is invoked from
+#   
+#   1.6.1 2000.03.20: bug correction - support for terminated experiments
+#       when printing fold-specific errors
+#   1.6 2000.03.16: added support for fold-specific error info
+#       Also added option (-x) to directly call xlispstat and output
+#       final stats-format file
+#   1.5 2000.02.08: added code to handle case of only one fold -
+#       no standard error of mean classficiation error in that case!
+#   1.4 (1999.11.16) Changed LISP code so that output is more
+#       like for DCT: keys dont have blanks, only one measurement for
+#       each line, additional keys per line seperated by blanks
+#   1.3 (1999.11.11) Changed LISP code for calculation of standard error
+#       of the mean classification error to have more descriptive 
+#       variable names 
+#       Added missing initialization of per-fold wrong/correct/total
+#       counts 
+#   1.2 (1999.10.11)
+#       Added code to calculate StdError (the standard deviation of
+#       the mean errror of all folds: This is the standard deviation
+#       of the means of all folds divided through squareroot of 
+#       the number of folds)
+#   1.1 (1999.10.07)
+#       Add option -N n to support different number of target and
+#       prediction files for each algorithm (i.e. different number
+#       of folds)
+
+#use diagnostics -verbose;
+$debug = 0;
+
+require 5.000;
+
+# use Cwd; some dont have this ...
+use Getopt::Long;
+use File::Basename;
+
+my $pgmname = $0;
+my $pgmpath = dirname($pgmname);
+
+my $folds = 10;
+my $repeats = 1;
+
+sub showusage {
+print STDERR <<USAGE
+Usage: $0 -f filestem [-o outfile] [-N n] [-R n] [-regr] [-v]
+  -f filestem: the stem of the *_<fold>_<alg>.pred  files (required)
+               this must include the seed.
+  -o outfile: full path of output file where to store stats
+     (default: $filestem.stats)
+  -N n: number of folds (default: $folds)
+  -R n: number of repititions (default: $rep)
+  -regr: regression  (default: classification)
+  -v: verbose output
+  -d: debug output
+Program version: $version ($date)
+USAGE
+;
+exit(1);
+}
+
+sub printOut {
+  my $what = $_[0];
+  print OUT $what;
+  print "Code: ",$what if $opt_d;
+}
+
+
+GetOptions("f=s","v","d","N=i","R=i", "regr","o=s") or showusage();
+
+if ($opt_f =~ /^\s*$/) {
+  print STDERR "Filestem not specified!\n";
+  showusage();
+}
+
+if (defined($opt_N)) {
+  $folds = $opt_N;
+}
+if (defined($opt_R)) {
+  $repeats = $opt_R;
+}
+
+if (defined($opt_o)) {
+  $outfile = $opt_o;
+} else {
+  $outfile = $opt_f . ".stats";
+}
+
+if ($opt_d) {
+  $opt_v = 1;
+}
+
+open(OUT,">statsout-$$.lsp") || die "Couldnt write temporary file statsout-$$.lsp";
+
+$filestem = basename($opt_f);
+$filepath = dirname($opt_f);
+
+opendir(DH, $filepath) or die "Couldn't list directory $filepath";
+my @files = readdir(DH);
+closedir(DH);
+@files = grep { /^$filestem\_[0-9]+\.targets/ or  
+		/^$filestem\_[0-9]+_[^_]+\.pred/ or
+		/^$filestem\_R[0-9]+_[0-9]+\.targets/ or
+		/^$filestem\_R[0-9]+_[0-9]+_[^_]+\.pred/ } @files;
+@files = sort @files;
+
+my @fold0pred = grep { /_0_[^_]+\.pred$/ } @files;
+my @algs = ();
+foreach $x (@fold0pred) {
+  $x =~ s/$filestem\_[0-9]+_([^_]+)\.pred/$1/;
+  push @algs,$x;
+}
+
+$nalgs = $#algs+1;
+
+print STDERR "Methods ($nalgs): ",join(",",@algs),"\n" if $opt_d;
+
+if ($nalgs == 0) {
+  die "No pred files for the stem $opt_f\n";
+}
+
+printOut "(load \"$pgmpath/stats.lsp\")\n";
+printOut "(set-statsfile \"$outfile\")\n";
+printOut "(setq *debug* t)" if $opt_d;
+printOut "(setq *verbose* t)" if $opt_v;
+printOut "(setq *nr-fold* $folds)";
+printOut "(setq *nr-rep* $repeats)";
+printOut <<EOL
+(defmacro do (&rest body)
+  `(handler-bind 
+      ((serious-condition #'(lambda (c)
+                  (format t "Error in ~s: ~a, terminating~%" 
+                             (quote ,\@body) c)
+                  (exit))))
+    (when *verbose*
+      (format t "Doing: ~s~%" (quote ,\@body)))
+    ,\@body))
+EOL
+;
+foreach $repeat ( 0..($repeats-1) ) {
+  if ($repeat == 0) {
+    $rep = "";
+  } else {
+    $rep = "_R$repeat";
+  }
+  foreach $fold ( 0..($folds-1) ) {
+    $targetfile = "$opt_f".$rep."_$fold.targets";
+    if (-f $targetfile) {
+      printOut "(do (read-chunk-targets \"$targetfile\"))\n";
+    } else {
+      print STDERR "ERROR: Target file $targetfile doesnt exist, exit!\n";
+    }
+    foreach $alg ( @algs ) {
+      $predictionfile = "$opt_f".$rep."_$fold" . "_$alg.pred";
+      if (-f $predictionfile) {
+	printOut "(do (read-chunk-predictions \"$predictionfile\" \"$alg\"))\n";
+      } else {
+	printOut "(do (drop-chunk-predictions \"$predictionfile\" \"$alg\"))\n";
+	print STDERR "Predictionfile $predictionfile doesnt exist\n" if $verbose;
+      }
+    }
+    printOut  
+      ($opt_regr ?
+       "(do (regr-stats-chunk $repeat $fold))\n" :
+       "(do (class-stats-chunk $repeat $fold))\n");
+  }}
+
+printOut ($opt_regr ?
+	    "(do (regr-stats-all))\n(do (regr-stats-pairs))\n" :
+	    "(do (class-stats-all))\n(do (class-stats-pairs))\n");
+  
+
+printOut "(exit)\n";
+
+close OUT;
+
+$cmd = "xlispstat statsout-$$.lsp";
+print STDERR "Running: $cmd\n" if $opt_d;
+open (IN, "$cmd |") or die "Error: could not execute command \"$cmd\" $!/$?\n";
+while (<IN>) {
+  if ($opt_v) {
+    print $_;
+  } else {
+    if (/^Error/) {
+      print $_;
+    }
+  }
+}
+close (IN) or die "Error: problem with command \"$cmd\" - $!/$?\n";
+if ($opt_d) {
+  print "Warning: statsout-$$.lsp kept because of option -d\n";
+} else {
+  if (0 == (unlink "statsout-$$.lsp")) {
+    print "Warning: Couldn't unlink statsout-$$.lsp - $!?\n";
+  } else {
+    print "File statsout-$$.lsp removed\n" if $opt_v;
+  }
+}
+
+
+

@@ -1,0 +1,133 @@
+#!/usr/local/bin/perl
+
+$rcsid = '$Id: run_cla_TEMPLATE,v 3.0.2.1 2002/08/24 07:22:42 johann Exp $';
+
+## the following code must be present and should not be 
+## changed!
+use vars qw($pgmname $pgmpath $trainargs %k $args 
+	    $testargs  $predfile  $filestem);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+require config;
+
+## Replace LANAME by the name of the algorithm. 
+## No whitespace or special characters are allowed for the name.
+## The name should be the same as used for the name of the
+## interface script, i.e. if the interface script is called
+## run_cla_mylearner, then LANAME should be replaced by "mylearner".
+## The name will also be stored in $la for later use.
+## Replace VERSION by some version string, e.g. "2.3" or 
+## "20020222".
+beginLA("LANAME","VERSION"); 
+
+
+## The script should now run the training phase of the 
+## classification learning algorithm. For this it must 
+## use the database in standard database format identified
+## by the filestem in the variable $fielstem i.e.
+## "$filestem.data" and "$filestem.names".
+## Note that the file "$filestem.test" that should be 
+## used for the evaluation phase also exists, this
+## could be a problem for learning algorithms that
+## automatically run the evaluation phase if a file
+## of that name is found.
+
+## if necessary the database to be used for the training
+## phase (i.e. $filestem.data and $filestem.names) 
+##  must be converted to the format required by the learning 
+## algorithm here.
+
+
+## replace the example command by the apropriate command
+## to call the training phase of your learning algorithm.
+## Be sure to pass $args and $trainargs correctly so that
+## parameters can be passed from the run_exp program.
+## Ususally the program called here should be in the path.
+startCMD("mylearner -b -f $filestem -model $filestem.$la.model $args $trainargs");
+
+## the following loop MUST be included to consume all
+## the output of the learning algorithm. Optionally,
+## you can parse the output of the learning algorithm
+## to obtain data like the size of the model, or 
+## other data you want to include in the log or the
+## results file.
+
+## to avoid confusion with global variables 
+## you should declare the variables you use 
+my $mytmp1 = "";
+while (defined($_=getLine())) {
+  ## here you can "grep out" interesting information
+  ## similar to this:
+  ### if a line starts with "Size: " followed by one or 
+  ### more digits which get remembered ...
+  if (/^Size: ([0-9]+)/) {  
+    $mytmp1 = $1;   ## remember the number
+  }
+}
+
+## Values that should get shown and handled by the calling 
+## run_exp program must be stored in the $k hash.
+## Obligatory values that always should be stored 
+## are: Size, Traintime, Testtime, Error, and Resubsterror 
+## (see below).
+$k{"Size"} = $mytmp1;
+
+
+## the stopCMD() routine returns the CPU time measurement 
+## used for thge training phase, so this should probably
+## be left unchanged.
+$k{"Traintime"} = stopCMD();
+
+## replace this by the command to run the testphase, i.e.
+## create a file of predicted target values from the 
+## $filestem.test database and calculate the error rate 
+## of the predictions when compared to the true targets 
+## in $filestem.test. 
+## Make sure the file with predictions is stored in
+## $predfile, such that each line contains just the 
+## predicted value for the corresponding line in 
+## $filestem.test, and nothing else.
+## NOTE: The program run_exp will assume a problem with the 
+## learning algorithm if this file is not created correctly.
+startCMD("mylearner -test -f $filestem -model $filestem.$la.model -p $predfile $args $testargs");
+
+## Again, consume all the output lines of the algorithm and 
+## use any information from the output.
+while (defined($_=getLine())) {
+  if (/^Error rate:\s+([0-9\.]+)/) {
+    $k{"Error"} = $1;
+  }
+}
+
+## This should probably be left unchanged.
+$k{"Testtime"} = stopCMD();
+
+
+## !! Make sure to clean up all files that have been created
+## by either the learning algorithm or the script.
+rmFile("$filestem.tmp");
+rmFile("$filestem.tree");
+
+
+## this must be present
+endLA();
+
+## Additional comments:
+## If you want to signal an error and terminate the script, 
+## use exitErr("some error message");
+## In order to print a message to the log, use
+##   printMsg("some text");
+## In order to only print the message if the verbose or debug
+## option has been specified, use:
+##   printMsg("some text") if $opt_v;
+## or
+##   printMsg("some text") if $opt_d;
+## In addition, the following functions are available:
+##   fileSize(file): returns the number of lines in the file
+##   TimeToSecs(timestring): converts a time string as return
+##      by the UNIX timex command to the equivalent number of 
+##      seconds.
+

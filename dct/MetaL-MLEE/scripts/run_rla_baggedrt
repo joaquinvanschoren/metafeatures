@@ -1,0 +1,45 @@
+#!/usr/local/bin/perl
+
+# run_rla_baggedrt
+# by Luis Torgo (LIACC) based on scripts by Johann Petrak (OeFAI)
+#
+# ----------------------------------------------------------------------
+# CHANGES:
+#
+# 2001-10-16 2.1 (JP): added support for config.pm
+# 2001-10-04:
+#    - calls baggedrt_metal from scripts dir
+# 2001-08-31: 
+#    - changed into new version of RT4.1 (no changes in this script)
+#
+
+$pgmversion = '$Revision: 3.0.2.3 $';
+$pgmdate    = '$Date: 2002/08/28 13:12:52 $';
+$rcsid      = '$Id: run_rla_baggedrt,v 3.0.2.3 2002/08/28 13:12:52 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+require config;
+
+beginRA("baggedrt",$pgmversion); 
+
+startCMD("$pgmpath/baggedrt_metal DUMMY $filestem $predfile 50 -nopruning $args $trainargs ");
+while (defined($_=getLine())) {
+  if (/TrainTime=\s+([0-9\.]+)/) {
+    $k{"Traintime"} = $1;
+  }
+  if (/TestTime=\s+([0-9\.]+)/) {
+    $k{"Testtime"} = $1;
+  }
+}
+
+endRA();
+

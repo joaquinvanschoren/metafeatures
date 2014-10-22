@@ -1,0 +1,71 @@
+#!/usr/local/bin/perl 
+
+# project
+# given an infilestem and outfilestem and a list of attribute
+# numbers (1-based), project specified attributes into output stem
+
+$pgmversion = '$Revision: 3.0.2.1 $';
+$pgmdate = '$Date: 2002/08/22 18:27:46 $';
+$rcsid   = '$Id: project,v 3.0.2.1 2002/08/22 18:27:46 johann Exp $';
+
+# Author: Johann Petrak
+# based on a scriptby Rui Leite
+# CHANGES: 
+# 2001-10-16 1.3 JP: add support for config.pm
+# 2001-09-18 1.2 JP: add path to cut command in order to
+#   allow alternative cut without the limit on the number
+#   of fields some UNIX cuts have. The alternative cut
+#   from GNU textutils should be placed in the script
+#   directory
+# 2000-08-29 1.1 Johann Petrak: initial version
+
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require config;
+
+$filestem=@ARGV[0];
+$ofilestem=@ARGV[1];
+$attrs=@ARGV[2];
+
+if ($filestem eq "") {
+  print "usage: project infilstem outfilestem attrlist\n";
+  print "  where attrlist is a comma seperated list of numbers\n";
+  print "Version: $pgmversion ($pgmdate)\n";
+  exit(1);
+}
+
+@atr_list=split ",", $attrs;
+
+
+# create new names file
+$atr=1;
+$i=0;
+open(IN,"<$filestem.names");
+open(OUT,">$ofilestem.names");
+while (<IN>) {
+    if (/[\S]+:/) { # e uma linha de atributos
+	while ($i<=$#atr_list && $atr>$atr_list[$i]) {
+		$i++;
+	}
+        if ($atr==@atr_list[$i]) { 
+	    print OUT $_;
+	} 
+ 	$atr++;
+    } else {
+	    print OUT $_;
+    }
+}
+close(IN);
+close(OUT);
+
+$linha="$attrs,$atr";
+$cmd1="$CUTBIN/cut -d\",\" -f$linha $filestem.data > $ofilestem.data";
+$cmd2="$CUTBIN/cut -d\",\" -f$linha $filestem.test > $ofilestem.test";
+#print "com=$cmd1\n";
+#print "com=$cmd2\n";
+
+system $cmd1;
+system $cmd2; 
+

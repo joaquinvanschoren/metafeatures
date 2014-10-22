@@ -1,0 +1,27 @@
+#!/usr/local/bin/perl
+
+# run_cpa_disc
+# by Rui Pereira & Carlos Soares
+
+$pgmversion = '$Revision: 3.0.2.2 $';
+$pgmdate    = '$Date: 2002/08/28 13:12:52 $';
+$rcsid      = '$Id: run_cpa_disc,v 3.0.2.2 2002/08/28 13:12:52 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $args $trainargs $debug %k
+	    $time $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginPA("disc",$pgmversion); 
+$debug = 1; # we always want verbose mode here
+startCMD("perl  $pgmpath/disc_wrapper.perl $opt_istem $opt_ostem");
+while (defined($_=getLine())) {
+}
+$k{"PAtime_disc"} = stopCMD();
+
+endPA();

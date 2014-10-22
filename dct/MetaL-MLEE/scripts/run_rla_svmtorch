@@ -1,0 +1,69 @@
+#!/usr/local/bin/perl
+
+# run_rla_svmtorch
+# by Rui Pereira (LIACC)
+# based on the run_ra_*** scripts by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_rla_svmtorch,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# NOTE (by JP):
+# this script calls svmtorch_wrapper, a perl script that
+# is expected at the same location where this script is called from
+# svmtorch_wrapper itself needs two further programs:
+#   make_continuous, a perl script that is expected to be 
+#   in the path and callable by its name, and 
+#   only_cont a binary file that is expected to be in the path
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginRA("svmtorch",$pgmversion); 
+
+
+
+# File names needed for svmtorch_wrapper
+
+#Model file
+$modelfile=$filestem.".svmtorchmodel";
+
+# Calls the SVMTorch_Wrapper
+startCMD("perl $pgmpath/svmtorch_wrapper $filestem $modelfile -r $args $trainargs");
+while (defined($_=getLine())) {
+    if (/\s*# Supports vectors : (.*)/) {
+	$k{"Size"} = $1;
+    }
+    if (/\s*# Mean Squared Error\s*:\s* ([0-9\.]+)/) {
+	$k{"Resubsterror_MSE"} = $1;
+    }
+    if (/\s*# Mean Absolute Error\s*:\s* ([0-9\.]+)/) {
+	$k{"Resubsterror_MAE"} = $1;
+    }
+}
+$k{"Traintime"} = stopCMD();
+
+
+# Calls the SVMTest_Wrapper
+startCMD("perl $pgmpath/svmtest_wrapper $modelfile $filestem $predfile -r  $args $testargs");
+
+while (defined($_=getLine())) {
+    if (/\s*# Mean Squared Error\s*:\s* ([0-9\.]+)/) {
+	$k{"Error_MSE"} = $1;
+    }
+    if (/\s*# Mean Absolute Error\s*:\s* ([0-9\.]+)/) {
+	$k{"Error_MAE"} = $1;
+    }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.model");
+
+endRA();

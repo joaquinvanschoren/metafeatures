@@ -1,0 +1,174 @@
+#!/usr/local/bin/perl
+
+$version = '$Revision: 3.0 $'
+$versiondate = '$Date: 2002/06/30 19:05:19 $';
+$rcsid = '$Id: exp_makerun,v 3.0 2002/06/30 19:05:19 johann Exp $';
+
+# exp_makerun: read in an experiment description file
+# and generate a csh script file that contains all 
+# the necessary commands to run an experiment
+
+
+# experiment dirname
+# datapath [path to prepend to data locations]
+# begindata
+#   location[,filestem_if_different_from_location]
+#   location[,filestem_if_different_from_location]
+# enddata
+# begincmd
+#   run_exp -f $datapath/$location/$stem
+#   run_exp -f $datapath/$location/$stem
+# endcmd  
+
+
+use Getopt::Long;
+
+sub showusage  {
+  my $error = $_[0];
+print "Error: ",$error,"\n" if ($error);
+print STDERR <<USAGE
+Usage: $0 -e experimentfile 
+-v: verbose output
+-d: debug (implies -v).
+-h: help -- show this usage information
+
+Version: $version $versiondate
+USAGE
+;
+print "\nError: ",$error if ($error);
+exit(1);
+}
+
+my $parmlist = join(" ",@ARGV);
+
+GetOptions("e=s", "s=s","v", "d", "h",
+	  ) or showusage();
+
+if ($opt_h) {
+  showusage();
+  exit(0);
+}
+$debug = 1 if (defined($opt_d));
+$opt_v = 1 if (defined($opt_d));
+$opt_v = 1 if (defined($opt_v));
+$verbose = $opt_v;
+
+die "Need -e experimentfile!" unless ($opt_e);
+
+@locations = ();
+@stems = ();
+@cmds = ();     
+# parse the experiment file
+open(IN,$opt_e) or die "Couldnt open experimentfile $opt_e for reading";
+$state = ""; $nrcmd = 0; $nrdata = 0;
+while(<IN>) {
+  if(/experiment\s+(\S+)/) {
+    $experiment = $1;
+  } elsif (/datapath\s+(\S+)/) {
+    $datapath = $1;
+  } elsif (/begindata/) {
+    $state = "data";
+  } elsif (/enddata/) {
+    $state = "";
+  } elsif (/begincmd/) {
+    $state = "cmd";
+  } elsif (/endcmd/) {
+    $state = "";
+  } else {
+    if ($state eq "data") {
+      if (/([^,]+),(\S+)/) {
+	$locations[$nrdata] = $1;
+	$stems[$nrdata] = $2;
+	$nrdata++;
+      } elsif (/(\S+)/) {
+	$locations[$nrdata] = $1;
+	$stems[$nrdata] = $locations[$nrdata];
+	$nrdata++;
+      } else {
+	print STDERR "Strange line: $_\n";
+      }
+    } elsif ($state eq "cmd") {
+      $cmds[$nrcmd] = $_;
+      print "Got command ".$cmds[$nrcmd]."\n" if ($debug);
+      $nrcmd++;
+    } else {
+	print STDERR "Strange line: $_\n";
+    }
+  }
+}
+close(IN);
+
+die "Need 'experiment name' in definition file" unless ($experiment);
+die "Need at least one data location/stem" if ($nrdata == 0);
+die "Need at least one command" if ($nrcmd == 0);
+
+  if ($datapath) {
+    $datapath .= "/";
+  }
+
+print "got $nrdata data specs\n" if ($verbose);
+print "got $nrcmd commands\n" if ($verbose);
+
+
+
+$date = `date +%Y%m%d-%H%M`;
+chomp($date);
+
+$experiment =~ s=/=_=g;
+print "Creating output directory $experiment if necessary\n";
+runCMD("mkdir $experiment");
+
+  # write the run script
+  open(OUT,">$experiment/RUN-$experiment") or die "couldnt write $experiment/RUN-$experiment";
+
+  print OUT "#!/bin/csh -f\n\n";
+  
+  print OUT"touch RUN-$experiment-where-$date\n";
+  print OUT "touch RUN-$experiment-log-$date\n";
+  print OUT "set curdir=`pwd`\n";
+
+  for ( $i=0; $i<=$#stems; $i++) {
+    $stem = $stems[$i];
+    $location = $locations[$i];
+    runCMD("mkdir $experiment/$stem");
+    print OUT "echo $stem >>&! RUN-$experiment-where-$date\n";
+    print OUT "cd $stem\n";
+    for ( $j=0; $j<=$#cmds; $j++ ) {
+      $cmd = $cmds[$j];
+      chomp($cmd);
+      $cmd =~ s/\$(\w+)/${$1}/g ;
+      print OUT "$cmd >>&! ../RUN-$experiment-log-$date \n";
+    }
+    print OUT "cd ..\n";
+  }
+  
+
+# TODO!!!!
+sub write_check {
+  
+  open(OUT,">RUN-check") or die "couldnt write RUN-check";
+  
+  print OUT "#!/bin/csh -f\n\n";
+  
+  foreach $host ( "hummel", "westbahn", "berg" ) {
+    for ( $i=0; $i<=$#fstems; $i++) {
+      $fstem = $fstems[$i];
+      print OUT "if (! -f $host/$fstem/$fstem"."_2.stats) echo Missing: $host $fstem\n";
+    }}
+    close OUT;
+}
+
+
+
+
+
+### runCmd will run the given command and return its output
+### after removing any trailing newline character
+sub runCMD {
+  my $cmd = $_[0];
+  print "Running: $cmd\n" if $verbose;
+  my $ret = `$cmd`;
+  chomp($ret);
+  print "Returned: $ret\n" if $debug;
+  return $ret;
+}

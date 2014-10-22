@@ -1,0 +1,57 @@
+#!/usr/local/bin/perl
+
+# run_cma_nodes
+# by Johannes Fuernkranz (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cma_nodes,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# implement the three decision node based landmarks of Hilan's
+
+use vars qw($pgmname $pgmpath $trainargs %k $args $debug
+	    $testargs  $predfile  $filestem $opt_tmppath);
+use Getopt::Long;
+use File::Basename;
+use File::Copy;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginMA("NodeLandmarks",$pgmversion); 
+
+startCMD("perl $pgmpath/landmarks.pl $filestem");
+while (defined($_=getLine())) {
+  if (/^Best Node \(.*\) Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_best_node_Error"} = 1 - $1/100;
+    next;
+  }
+  if (/^Worst Node \(.*\) Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_worst_node_Error"} = 1 - $1/100;
+    next;
+  }
+  if (/^Random Node \(.*\) Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_random_node_Error"} = 1 - $1/100;
+    next;
+  }
+  if (/^Most Accurate Node \(.*\) Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_most_accurate_node_Error"} = 1 - $1/100;
+    next;
+  }
+  if (/^Least Accurate Node \(.*\) Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_least_accurate_node_Error"} = 1 - $1/100;
+    next;
+  }
+  if (/^Average Node Training Accuracy: ([0-9\.]+)/) {
+    $k{"MA_average_node_Error"} = 1 - $1/100;
+    next;
+  }
+}
+while (defined($_=getLine())) {
+}
+$k{"MA_node_landmarks_Traintime"} = stopCMD();
+
+endMA();
+

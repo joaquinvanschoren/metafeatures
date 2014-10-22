@@ -1,0 +1,67 @@
+#!/usr/local/bin/perl
+
+# run_rla_lr
+# an RT emulation of a multiple linear regression model with backward elimination
+# by Luis Torgo (LIACC) based on scripts by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_rla_lr,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# ----------------------------------------------------------------------
+# CHANGES:
+#
+# 2001-05-21 2.1: change to new version of RT (from 4.0 to 4.1)
+#
+# 2001-08-31: 
+#    - change to new version of RT4.1
+#    - removed the -tlm be parameter that performed model simplification 
+#      (now full linear models are used)
+#
+
+# ----------------------------------------------------------------------
+# THIS SCRIPT NEEDS THE FOLLOWING PROGRAMS/SCRIPTS:
+#
+#  - rt4.1
+#    C program implementing RT
+#       .../algorithms/bin/rt4.1         491096 Aug 31 16:11 
+#
+#  - rttest4.1
+#    C program implementing RT (only testing phase)
+#       .../algorithms/bin/rttest4.1     352564 Aug 31 16:11
+#
+#
+
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginRA("lr",$pgmversion); 
+
+startCMD("rt4.1 $filestem  -metal -lr  $args $trainargs");
+while (defined($_=getLine())) {
+  if (/Train error = ([0-9\.]+)/) {
+    $k{"Resubsterror_MSE"} = $1;
+  }
+}
+$k{"Traintime"} = stopCMD();
+
+startCMD("rttest4.1 $filestem -metal -lr  -test  $predfile  $args $testargs");
+while (defined($_=getLine())) {
+  if (/MEAN SQUARED ERROR \(MSE\)\s*=\s*([0-9\.]+)/) {
+    $k{"Error_MSE"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.data.model");
+
+endRA();
+

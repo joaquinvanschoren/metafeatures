@@ -1,0 +1,319 @@
+#!/usr/local/bin/perl 
+
+$version = '$Revision: 3.0.2.1 $';
+$vdate   = '$Date: 2002/08/19 20:55:31 $';
+$rcsid   = '$Id: parse_times,v 3.0.2.1 2002/08/19 20:55:31 johann Exp $';
+$dummy   = '$ $';  # to make emacs fontlock mode happy
+
+# parse_times 
+# ===========
+#
+# Parse times for standard-dataset and calculate factors.
+# The factor is defined as the value we have to multiply the measurement of
+# host A to get the corresponding measurement of host B
+# (to "make a host B measurement out of it") where "host B" is the
+# reference host specified via the -host option.
+# 
+# Author: Johann Petrak (OeFAI)
+#
+
+# TODO:
+# document the limitation that time 0.1 is lower limit for
+# the denominator
+# Only use a time if the corresponding status is ok.
+
+# CHANGES:
+#   1999.11.30 1.1: default output format is now what parse_results 
+#      expects for inter-host normalization. Additional output
+#      with -v or XLISPSTAT output with -xlispstat filname
+#   1999.11.22 1.0: Initial version
+
+# uncomment for more perl-parsing messages:
+#use diagnostics -verbose;
+
+# set to 1 to get more debugging output
+$debug = 0;
+$verbose = 0;
+
+require 5.000;
+
+use File::Basename;
+use Date::Manip;
+
+
+use Getopt::Long;
+use File::Basename;
+
+sub showusage {
+print STDERR <<USAGE
+Usage: $0 [-calc avg|last|median] [-xlispstat] -host hostname 
+  [-from YYYYMMDD] [-to YYYYMMDD] files+
+  [-calc avg|last|median]: if several values for host/alg found, do
+    average, use last, use median, default: avg
+  [-xlispstat filname]: write data for xlispstat or lisp to this file
+  [-from YYYYMMDD]: date to use for start of validity period of factor
+    (default: 19990101)
+  [-to YYYYMMDD]: date to use for end of validity period of factor
+    (default: 20990101)
+Program version: $version
+USAGE
+;
+exit(1);
+}
+
+GetOptions("host=s","h", "v", "d", "calc=s", "xlispstat=s","from=s","to=s") or showusage();
+
+if ($opt_h) {
+  &showusage;
+  exit(0);
+}
+if ($opt_v) { $verbose = 1; }
+if ($opt_d) { $debug = 1; }
+if ($debug) { $verbose = 1; }
+
+if ($opt_from eq "") {
+  $opt_from = "19000101";
+}
+if ($opt_to eq "") {
+  $opt_to = "20990101";
+}
+
+if ($opt_host eq "") {
+  print STDERR "no hostname for normalization given\n";
+  &showusage();
+  exit(1);
+}
+
+if ($opt_calc eq "") { $opt_calc = "avg"; }
+if ($opt_calc ne "avg" && $opt_calc ne "median" && $opt_calc ne "last") {
+  die "-calc must be avg, last or median";
+}
+if ($opt_calc eq "last") { $opt_calc = ""; } # internal rep for last
+
+$cur_host = "";
+$cur_date = "";
+%hosts = ();
+%algs  = ();
+%dates = ();
+
+%thetotaltimes = ();
+%thetraintimes = ();
+%thetesttimes = ();
+%thedates = ();
+
+%results = ();
+foreach $infile ( @ARGV ) {
+  open (IN, "<$infile") || die "Couldnt open $infile\n";
+  print STDERR "Processing file $infile\n" if $verbose;
+  while (<IN>) {
+    if (/^Version run_exp: (.+)$/) {
+      $results{'Version run_exp'} = $1;
+    } elsif (/^Host: (.+)$/) {
+      $cur_host = $1;
+      $hosts{$cur_host} = 1;
+    } elsif (/^Start: (.+)$/) {
+      $cur_date = $1;
+      $cur_date_parsed = &ParseDate($cur_date);
+      unless($cur_date_parsed) {
+	print STDERR "Couldnt parse date $cur_date (continuiong)\n";
+      }
+
+      # old code
+      $cur_date =~ /^[^ ]+[ ]+(\S+)/;
+      $date_month = $lookupmonths{$1};
+      
+      $cur_date =~ /^[^ ]+[ ]+[^ ]+[ ]+(\S+)/; $date_day = $1;
+      if (length($date_day < 2)) { $date_day = "0" . $date_day; }
+      $cur_date =~ /([^ ]+)$/; $date_year = $1;
+      $cur_date = $date_year . $date_month . $date_day;
+      # end old code
+      
+      unless(substr($cur_date_parsed, 1, 8) ne $cur_date) {
+	print STDERR "Parsed Dates dont match: $cur_date/$cur_date_parsed\n";
+      }
+      $cur_date = substr($cur_date_parsed,1,8);
+      $dates{$cur_date} = 1;
+    } elsif (/([^ ]+time) ([^ ]+): (\S+)/) {
+      $name = $1;
+      $alg = $2;
+      $algs{$alg} = 1;
+      $val = $3;
+      if ($name eq "Traintime") {
+	if ($opt_calc || $opt_xlispstat) {
+	  $thetraintimes{$cur_host}{$alg} .= " " . $val;
+	} else {
+	  $thetraintimes{$cur_host}{$alg} = $val;
+	}
+      } elsif  ($name eq "Testtime") {
+	if ($opt_calc || $opt_xlispstat) {
+	  $thetesttimes{$cur_host}{$alg} .= " " . $val;
+	} else { 
+	  $thetesttimes{$cur_host}{$alg} =  $val;
+	}
+     } elsif  ($name eq "Totaltime") {
+	if ($opt_calc || $opt_xlispstat) {
+	  $thetotaltimes{$cur_host}{$alg} .= " " . $val;
+	} else {
+	  $thetotaltimes{$cur_host}{$alg} = $val;
+	}
+      }
+    }
+  }
+  close IN;
+}
+
+@algs = sort keys %algs;
+@hosts = sort keys %hosts;
+print STDERR "Found algs:  ",join(",",@algs),"\n" if $verbose;
+print STDERR "Found hosts: ",join(",",@hosts),"\n" if $verbose;
+
+if ($opt_xlispstat) {
+  open(OUT,"> $opt_xlispstat") or die "couldnt open file $opt_xlispstat\n";
+  &writepgms();
+  print OUT "( setq *n-host* '$opt_host)\n";
+  print OUT "( setq *hosts* '(", join(" ",@hosts,),"))\n";
+  print OUT "( setq *algs* '(", join(" ",@algs,),"))\n";
+  print OUT "( setq *data* '(\n";
+  foreach $host ( @hosts ) { 
+    print OUT "( $host \n";
+    foreach $alg ( @algs ) {
+      print OUT "  ( $alg\n";
+      print OUT "    (",$thetotaltimes{$host}{$alg},")\n";
+      print OUT "    (",$thetraintimes{$host}{$alg},")\n";
+      print OUT "    (",$thetesttimes{$host}{$alg},")";
+      print OUT ")\n";
+    }
+    print OUT ")\n";
+  }
+  print OUT "))\n";
+} else {
+  foreach $host (@hosts) {
+    $allvalues = "";
+    #if ($host eq $opt_host) { next; }
+    print STDERR "Factors for host: $host as related to $opt_host\n" if $verbose;
+    foreach $alg (@algs) {
+      print STDERR "Have totaltimes $host/$alg: ",$thetotaltimes{$host}{$alg},"\n";
+      print STDERR "Have totaltimes $opt_host/$alg: ",$thetotaltimes{$opt_host}{$alg},"\n";
+      $factor = &div($thetotaltimes{$opt_host}{$alg},
+		     $thetotaltimes{$host}{$alg});
+      if ($factor !~ /~/) { $allvalues .= " " . $factor; }
+      print STDERR $host," ",$alg," Totaltime ",$factor,"\n" if $verbose;
+      $factor = &div($thetraintimes{$opt_host}{$alg},
+		     $thetraintimes{$host}{$alg});
+      if ($factor !~ /~/) { $allvalues .= " " . $factor; }
+      print STDERR $host," ",$alg," Traintime ",$factor,"\n" if $verbose;
+      if ($factor !~ /~/) {
+	print "$host,$alg,$opt_from,$opt_to,$factor\n";
+      }
+      $factor = &div($thetesttimes{$opt_host}{$alg},
+		     $thetesttimes{$host}{$alg});
+      if ($factor !~ /~/) { $allvalues .= " " . $factor; }
+      print STDERR $host," ",$alg," Testtime ",$factor,"\n" if $verbose;
+    }
+    print STDERR "Overall mean for $host: ",avg($allvalues),"\n" if $verbose;
+    print STDERR "Overall median for $host: ",median($allvalues),"\n" if $verbose;
+  }
+} # if xlispstat  
+
+sub div {
+  my $nom = $_[0];
+  my $denom = $_[1]; 
+  if ($opt_calc eq "avg")  {
+    $nom = avg($nom);
+    $denom = avg($denom);
+  } elsif ($opt_calc eq "median")  {
+    $nom = median($nom);
+    $denom = median($denom);
+  }
+  if ($nom eq "" || $nom == 0) {
+    return "?";
+  } elsif ($denom eq "" || $denom == 0) {
+    return "?";
+  } else {
+    if ($denom < 0.1) {
+      $add = "~";
+    } else {
+      $add = " ";
+    }
+    return $add . ($nom/$denom);
+  }
+}
+
+sub avg {
+  my $what = $_[0];
+  my @vals = split(" ",$what);
+  my $sum = 0;
+  my $n = 0;
+  print STDERR "Average for $what\n" if $debug;
+  if ($#vals == -1) {
+    return "";
+  }
+  foreach $val ( @vals ) {
+    if ($val =~ /[\d\.]+/) {   
+      $n++;
+      $sum += $val;
+    }
+  }
+  if ($n == 0) {
+    return "";
+  } else {
+    return $sum / $n; 
+  }
+}
+
+sub median {
+  my $what = $_[0];
+  my @vals = split(" ",$what);
+  my $sum = 0;
+  my $n = 0;
+  print STDERR "Median for $what\n" if $debug;
+  if ($#vals == -1) {
+    return "";
+  }
+  if ($#vals == 0) {
+    return $vals[0];
+  }
+  @vals = map { (/[\d\.]+/) ?  $_ : () ; } @vals;
+  print STDERR "Median, mapped: ", join(",",@vals),"\n" if $debug;
+  @vals = sort { $a <=> $b } @vals;
+  print STDERR "Median, sorted: ", join(",",@vals),"\n" if $debug;
+  
+  $n = $#vals;
+  print STDERR "n is $n, n/2 is",$n/2,"\n" if $debug;
+  if (($n % 2) == 0) {
+    $vals[($n/2 + 1)],"\n";
+    return ($vals[int $n/2] + $vals[(int $n/2) + 1]) / 2;
+  } else {
+    return $vals[int $n/2];
+  }
+}
+
+sub writepgms {
+  print OUT <<EOF
+
+(defun times (name &key (time 'totaltime) (calc #'mean))
+  "return list of the means of all times in data"
+  (let ((alglist (cdr (assoc name *data*)))
+	(sel-func nil))  ;; pick which time
+    (case time
+      ('totaltime (setq sel-func #'car))
+      ('traintime (setq sel-func #'second))
+      ('testtime (setq sel-func #'third))
+      (t (error "Not a time: ~a" time)))
+    (mapcar calc (mapcar sel-func (mapcar #'cdr alglist)))
+    ))
+
+(defun ratios (name1 name2 &key (time 'totaltime) (calc #'mean))
+  (let* ((t1 (times name1 :time time :calc calc))
+	 (t2 (times name2 :time time :calc calc)))
+    (mapcar #'(lambda (x y)
+		(if (and (not (eq '? x)) (not (eq '? y)) (> x 0.1) (> y 0.1)) 
+		    (/ x y)
+		  '?))
+	    t1 t2)))
+(defun normalize (name &key (time 'totaltime) (calc #'mean))
+  (ratios *n-host* name :time time :calc calc))
+(defun factor (name  &key (time 'totaltime) (calc #'mean) (calc2 #'mean))
+  (funcall calc2 (remove '? (normalize name :time time :calc calc))))
+EOF
+}

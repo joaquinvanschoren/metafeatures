@@ -1,0 +1,40 @@
+
+This file describes changes in DCT done by Wojciech Kwedlo.
+
+Initial version 2.7
+
+8.10.99 
+Corrected some major bugs in memory management, 
+which caused DCT to fail and dump a very large core when 
+running datasets with large number of attributes 
+(e.g. clean1, clean2). For that reason added matrix_free
+to correctly free the memory allocated for matrices.
+
+12.10.99 
+New output, which should be easier to parse now.
+
+13.10.99 
+Corrected a bug in compare_double, which caused 
+qsort to work improperly, if the differences between sorted 
+numbers were lower than 1. As a result e.g. Quartiles for 
+the iris dataset were not computed correctly.
+
+Option -c name is now handled properly. The short output is written
+to $name.sres, not to $filestem.sres
+
+15.10.99 Version 2.8 released
+
+---------------------------------------
+
+22.10.99 
+
+For datasets without nominal features class entropy
+is now correctly stored in .sres and .res files. Previously
+it was sent to standard output but not to .res and .sres 
+files. 
+
+25.10.99
+Fixed missing ':' in two measures in standard output.  
+
+08.12.99
+Fixed missing measures in stabdard output.

@@ -1,0 +1,46 @@
+#!/usr/local/bin/perl
+
+# run_cla_mlcib1
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_mlcib1,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# no resubst error, since mlcib1 doesnt show this on its output
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("mlcib1",$pgmversion); 
+
+$size = fileSize("$filestem.data");
+$size += 0.0;
+
+startCMD("$la -train $filestem $filestem.$la.model $args $trainargs");
+while (defined($_=getLine())) {
+}
+$k{"Traintime"} = stopCMD();
+
+startCMD("$la -test $filestem $filestem.$la.model $predfile $args $testargs");
+while (defined($_=getLine())) {
+  if (/Number of training instances: ([0-9]+)/) {
+    $k{"Size"} = $1;
+    next;
+  }
+  if (/^Error:\s+([0-9\.]+)/) {
+    $k{"Error"} = $1 / 100.0;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.$la.model");
+
+endLA();

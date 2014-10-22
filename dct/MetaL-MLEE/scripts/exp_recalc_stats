@@ -1,0 +1,43 @@
+#!/bin/csh -f 
+
+set version='$Revision: 3.0 $'
+set versiondate='$Date: 2002/06/30 19:05:19 $'
+set rcsid='$Id: exp_recalc_stats,v 3.0 2002/06/30 19:05:19 johann Exp $'
+#set debug
+#set echo
+
+# unsupported/alpha: rerun statistics on all the subdirs in a dir
+# (each subdir may only contain results for one filestem/experiment)
+
+set dest=$1
+
+if ("x$dest" == "x") then
+  echo usage: $0 whichdir
+  exit
+endif
+if ("$dest" == "-h") then
+  echo usage: $0 whichdir
+  echo Version: $version $versiondate
+  exit
+endif
+
+
+set curdir=`pwd`
+foreach subdir ( $dest/* )
+  set stem=$subdir:t
+  if (-d $subdir ) then
+    echo processing subdir $stem
+    cd $subdir
+      set tmp=`ls *.results`
+      foreach mystem ( $tmp )
+        set tmpstem=$mystem:r
+        set tmpstem=$tmpstem:t
+        run_stats -f $tmpstem
+      end
+    cd $curdir
+  else
+    echo ignoring file $stem
+  endif
+end
+
+cd $curdir

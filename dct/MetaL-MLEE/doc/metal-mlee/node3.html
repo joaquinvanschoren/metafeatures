@@ -1,0 +1,291 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Installation</TITLE>
+<META NAME="description" CONTENT="Installation">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node4.html">
+<LINK REL="previous" HREF="node2.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node4.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html142"
+  HREF="node4.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html138"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html132"
+  HREF="node2.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html140"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html143"
+  HREF="node4.html">What METAL-MLEE Does</A>
+<B> Up:</B> <A NAME="tex2html139"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html133"
+  HREF="node2.html">Introduction</A>
+ &nbsp <B>  <A NAME="tex2html141"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html144"
+  HREF="node3.html#SECTION00031000000000000000">System Requirements</A>
+<LI><A NAME="tex2html145"
+  HREF="node3.html#SECTION00032000000000000000">Software Requirements</A>
+<LI><A NAME="tex2html146"
+  HREF="node3.html#SECTION00033000000000000000">Obtaining and Installing the Program</A>
+<LI><A NAME="tex2html147"
+  HREF="node3.html#SECTION00034000000000000000">Source code by other authors included in the package</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION00030000000000000000"></A>
+<A NAME="install"></A>
+<BR>
+Installation
+</H1>
+
+<H2><A NAME="SECTION00031000000000000000">
+System Requirements</A>
+</H2>
+
+<P>
+<I>METAL-MLEE</I> has been developed and tested for SPARC computers
+running the Solaris operating system, however it will work on
+most LINUX and probably also other UNIX systems. It also works 
+on a MS-Windows (32-bit) system with the support of the free 
+<I>cygwin</I> software (see&nbsp;<TT><A NAME="tex2html3"
+  HREF="www.cygwin.com">www.cygwin.com</A></TT>).
+The known limitations of functionality for certain configurations
+and operating systems
+are mentioned in Section&nbsp;<A HREF="node6.html#programs">5</A> and in the descriptions of 
+the individual programs. The functionality under MS Windows is
+restricted due to poor support for 
+ressource limitation and CPU time profiling that is available 
+on the command level for this family of operating systems 
+(the CygWin package only provides a subset of the functionality
+needed to fully support all features of <I>METAL-MLEE</I>).
+
+<P>
+
+<H2><A NAME="SECTION00032000000000000000">
+Software Requirements</A>
+</H2>
+
+<P>
+The following software is needed to be installed on your system in order
+for <I>METAL-MLEE</I> to work. 
+
+<UL>
+<LI>Perl version 5.000 or higher. The <TT>perl</TT>
+  command must be in the binary search path. For the Perl-scripts
+  to work as commands, the <TT>perl</TT> binary or a link to it must be
+  available in <TT>/usr/local/bin</TT>. Otherwise, the scripts
+  must be invoked using the <TT>perl scriptname</TT> syntax.
+</LI>
+<LI>A C/C++ compiler, preferably <TT>gcc</TT>/<TT>g++</TT>
+  This is not needed if you have a computer with one of the
+  hardware architectures and operating systems for which
+  precompiled binaries are included (see below)
+</LI>
+<LI>Gnu make version 3.77 or higher (earlier version might work 
+  but have not been tested). This is only needed if you need 
+  to compile binaries yourself.
+</LI>
+<LI><TT>XLISPSTAT</TT> version 3.51 or higher. 
+XLISPSTAT is a portable LISP system with statistical 
+functions, it is available from
+<TT><A NAME="tex2html4"
+  HREF="http://www.stat.umn.edu/~luke/xls/xlsinfo/xlsinfo.html">http://www.stat.umn.edu/~luke/xls/xlsinfo/xlsinfo.html</A></TT>. The 
+<TT>xlispstat</TT> command must be in the binary search path.
+
+<P>
+</LI>
+<LI>the program <TT>md5sum</TT> from the free portable GNU <TT>textutils</TT>
+package. This package can be obtained from <TT><A NAME="tex2html5"
+  HREF="http://www.gnu.org/software/textutils/textutils.html">http://www.gnu.org/software/textutils/textutils.html</A></TT>.  This program is not essential, however.
+If it is missing, no MD5 hashes will be calculated for the
+databases. The <TT>md5sum</TT> command should be in the binary
+search path. If it is not, the location can be specified in
+the configuration file <TT>config.pm</TT>.
+The subdirectory <TT>/src/md5</TT> also contains a version of that
+program that can be built and installed into the <TT>bin</TT>
+subdirectory using <TT>make</TT>. To use that version, <TT>config.pm</TT>
+needs to be adapted accordingly.
+</LI>
+<LI>In addition you need one or more learning algorithms for
+use with <I>METAL-MLEE</I> (see Section&nbsp;<A HREF="node7.html#adapt">6</A> for more information
+on the requirements for learning algorithms).
+
+<P>
+</LI>
+</UL>
+
+<P>
+On most LINUX or UNIX-like systems <TT>perl</TT>, <TT>md5sum</TT>, a compiler,
+and <TT>make</TT> will already be installed. 
+
+<P>
+For MS-Windows computers,
+the easiest way to get all these for free is to install the
+CygWin software package (<TT><A NAME="tex2html6"
+  HREF="www.cygwin.com">www.cygwin.com</A></TT>).
+
+<P>
+
+<H2><A NAME="SECTION00033000000000000000">
+Obtaining and Installing the Program</A>
+</H2>
+
+<P>
+<I>METAL-MLEE</I> is distributed as  gzipped tarballs 
+from <TT><A NAME="tex2html7"
+  HREF="www.metal-kdd.org/download">www.metal-kdd.org/download</A></TT>. 
+You must download the sources as  <TT>mlee-metal-src.tgz</TT>.
+Optionally, you can download precompiled binaries for
+x86/linux (<TT>mlee-metal-binpclinux.tgz</TT>), 
+x86/windows with cygwin (<TT>mlee-metal-binpccygwin.tgz</TT>) or
+sparc/solaris (<TT>mlee-metal-binsparcsolaris.tgz</TT>).
+
+<P>
+Uncompress and extract the archive <TT>mlee-metal-src.tgz</TT>.
+This will create a directory with the name <TT>mlee</TT> that
+contains several subdirectories. 
+
+<P>
+If you also downloaded an archive with binaries, uncompress and
+extract this one too - it will create an additional subdirectory
+<TT>binpccygwin</TT>, <TT>binpclinux</TT>, or <TT>binsparcsolaris</TT>
+within the <TT>mlee</TT> directory.
+Change into that directory and check if you can run the precompiled
+binaries:
+type <TT>./dct -h</TT> and <TT>./shuffle -h</TT>. Both commands
+should produce as an output a short summary of command line 
+options. If this works, copy all files into the directory <TT>../bin</TT>.
+
+<P>
+If you cannot or do not want to use the precompiled binaries,
+ compile the programs: 
+Change into the <TT>mlee</TT> directory and type <TT>make all</TT>. This 
+will compile the DCT and shuffle programsand place it into the 
+subdirectory <TT>bin</TT>.
+
+<P>
+If you do not have the <TT>md5sum</TT> command already installed 
+and working on your system, type <TT>make md5sum</TT>. This will
+compile the md5sum program and place it into the subdirectory <TT>bin</TT>.
+You have to change the setting for the <TT>$MD5BIN</TT> variable in
+the configuration file <TT>scripts/config.pm</TT> to indicate
+the complete path of the <TT>bin</TT> directory.
+
+<P>
+Finally you probably need to adapt <I>METAL-MLEE</I> to the learning
+algorithms you are using. Section&nbsp;<A HREF="node7.html#adapt">6</A> gives instructions how
+to do that. 
+
+<P>
+<I>METAL-MLEE</I> is now ready for use. If you wish you can place
+the subdirectory <TT>script</TT> in the binary search path. You 
+can then directly invoke the commands from there by simply entering
+the name <I>provided</I> the <TT>perl</TT> program is installed
+in <TT>/usr/local/bin</TT>. If <TT>perl</TT> is installed somewhere
+else you can either make a link in <TT>/usr/local/bin</TT>, or 
+change the Perl-scripts so that the first line
+indicates the correct position, or simply invoke the scripts 
+like this: <TT>perl &lt;fullpathnameofscript&gt;</TT>.
+
+<P>
+
+<H2><A NAME="SECTION00034000000000000000">
+Source code by other authors included in the package</A>
+</H2>
+
+<P>
+Nearly all of the programs included in the <I>METAL-MLEE</I> package
+has been written by the author of this document. However the 
+following code by other authors is included:
+
+<P>
+
+<UL>
+<LI>The <TT>check_database.pl</TT> script has originally been
+written by Carlos Soares.
+</LI>
+<LI>The <TT>shuffle</TT> program uses a C++ wrapper to the 
+C-code of the <I>Mersenne Twister</I> pseudo random number generator,
+written by Takuji Nishimura. The original C-code for PRNG is 
+licensed under the GPL.
+</LI>
+<LI>the Source code for the md5sum program included in the <TT>src</TT>
+directory is copyrighted to RSA Data Security, 1991-1992.
+See the comment in the file <TT>md5c.c</TT> for details.
+</LI>
+</UL>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html142"
+  HREF="node4.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html138"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html132"
+  HREF="node2.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html140"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html143"
+  HREF="node4.html">What METAL-MLEE Does</A>
+<B> Up:</B> <A NAME="tex2html139"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html133"
+  HREF="node2.html">Introduction</A>
+ &nbsp <B>  <A NAME="tex2html141"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

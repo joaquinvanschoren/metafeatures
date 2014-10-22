@@ -1,0 +1,134 @@
+#!/usr/local/bin/perl
+
+# run_cla_ripper
+# by Johann Petrak  (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_ripper,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# CHANGES:
+# 2000-08-11 2.2: bug: hypothesis size was incorrectly extracted
+#   from rippers output
+# 2000-08-10 2.1: change ordering of $filestem $args ... so that
+#   $filestem comes last, otherwise ripper will ignore the arguments!
+# 13-10-1999: changed code to check for end of line dot in line 1
+#   od the data file: was done with 'head -1' until now, but
+#   head has a line length limit of 1023 bytes -- we do it
+#   now directly in perl.
+
+use vars qw($pgmname $pgmpath $trainargs $args $debug
+	    $testargs $predfile $filestem $la %k
+	   $verbose );
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("ripper",$pgmversion); 
+
+# determine number of records in testfile for later
+my $nrtargets = fileSize("$filestem.test");
+
+my $newfilestem;
+# Make sure data records are terminated with a dot:
+open(IN,"$filestem.data") || die "Couldnt open $filestem.data";
+$_ = <IN>;
+close(IN);
+my $havetmp = 0;
+if (!(/\.$/)) {
+  $newfilestem = $filestem . "_rippertmp";
+  printMsg("Converting data file\n") if $verbose;
+  open(TMPIN,"< $filestem.data") or 
+    exitErr("Cannot open data file $filestem.data: $!\n");
+  open(TMPOUT,"> $newfilestem.data") or 
+    exitErr("Cannot open new data file $newfilestem.data: $!\n");
+  while (<TMPIN>) {
+    s/([^\.])$/$1\./;
+    print TMPOUT;
+  }
+  printMsg("Converting test file\n") if $verbose;
+  open(TMPIN,"< $filestem.test") or 
+    exitErr("Cannot open data file $filestem.test: $!\n");
+  open(TMPOUT,"> $newfilestem.test") or 
+    exitErr("Cannot open new data file $newfilestem.test: $!\n");
+  while (<TMPIN>) {
+    s/([^\.])$/$1\./;
+    print TMPOUT;
+  }
+  close(TMPIN);
+  close(TMPOUT);
+  # above code was originally:
+  #`sed -e 's/[^\.]\$/&./' < $filestem.data > $newfilestem.data`;
+  #`sed -e 's/[^\.]\$/&./' < $filestem.test > $newfilestem.test`;
+  copy("$filestem.names", "$newfilestem.names");
+  $filestem = $newfilestem;
+  $havetmp = 1;
+}
+startCMD("$la $args $trainargs $filestem");
+while (defined($_=getLine())) {
+  if (/Test error rate:\s+([^%]+)/) {
+    $k{"Error"} = $1 / 100.0;
+  } elsif (/Train error rate:\s+([^%]+)/) {
+    $k{"Resubsterror"} = $1 / 100.0;
+  } elsif (/Hypothesis size:\s+([0-9]+)[^0-9]+([0-9]+)/) {
+    $k{"Size"} = $1;
+    $k{"Conditions"} = $2;
+  }
+}
+$k{"Traintime"} = stopCMD();
+
+# Run the prediction algorithm to create the predictions and
+# convert to our standard format on the fly
+
+startCMD("predict $args $testargs $filestem");
+open(OUT,">$predfile") || 
+  exitErr("Cannot open prediction file $predfile: $!\n");
+my $nrpred = 0;
+# in order to correctly sistinguish the actual predictions from
+# the stuff on STDERR (timing info) we use the first empty
+# line as an indication that we are done with the predictions
+# hmm that doesnt work with the linux time -p command
+# we check for "^real [0-9\.:]+"
+while(defined($_=getLine())) {
+  if (/^\s*$/) {
+    last;
+  } 
+  if (/^real [0-9\.:]+/) {
+    last;
+  }
+  s/\'//g;
+  if (/^(\S+)/) {
+    print OUT $1,"\n";
+    $nrpred++;
+  } 
+}
+while(defined($_=getLine())) {
+}
+$k{"Testtime"} = stopCMD();
+
+close(OUT) or exitErr("Error closing output pipe: $!\n");
+# Sanity check: compare number of predictions we got with
+# number of records in the test file
+if ($nrpred != $nrtargets) {
+  exitErr("Problem with predictions: need $nrtargets got $nrpred\n");
+}
+printMsg("Did $nrpred/$nrtargets predictions\n") if $debug;
+
+
+# if we had to create temporary db files, delete them
+if ($havetmp) {
+  rmFile("$newfilestem.names");
+  rmFile("$newfilestem.data");
+  rmFile("$newfilestem.test");
+}
+rmFile("$filestem.hyp");
+
+# ripper automatically does a test run, so we subtract the
+# testtime from the trainin time for a rough correction
+$k{"Traintime"} -= $k{"Testtime"};
+
+endLA();

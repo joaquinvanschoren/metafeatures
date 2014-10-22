@@ -1,0 +1,42 @@
+#!/usr/local/bin/perl
+
+# run_cma_lm1
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cma_lm1,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $args $trainargs $debug %k
+	    $time $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginMA("LM1",$pgmversion); 
+
+# testing a set of subsampling landmarkers
+#   we will 
+
+# 0) init: create name for temporary filestem in tmp dir
+# -> todo: we need to get this path passed from run_exp!
+
+# 1) first do the subsampling: 
+#    get a sample of size X for train
+#    get a sample of size Y for testing of rest
+# -> todo we need to pass X/Y from the ma-definition?
+# 
+# run several run_la_xxx on this and output the measurements for 
+# time and error estimates
+startCMD("c4.5 -f $opt_istem -c 0.1");
+while (defined($_=getLine())) {
+}
+$k{"LM1_C45Err"} = 0.1;
+$k{"LM1time"} = stopCMD();
+
+
+endMA();

@@ -1,0 +1,64 @@
+#!/usr/local/bin/perl
+
+# run_rla_kernel
+# an RT implementation of a kernel regression model using the distance
+# to the third nearest neighbour as the bandwidth value
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_rla_kernel,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# by Luis Torgo (LIACC) based on scripts by Johann Petrak (OeFAI)
+
+# ----------------------------------------------------------------------
+# CHANGES:
+# 2000-20-25 2.1: bug correction: training time was not 
+#   measured because while loop within startCMD for training
+#   phase was missing
+# 2001-05-21 2.1: change to new version of RT (from 4.0 to 4.1)
+#
+# 2001-08-31: 
+#    - change to new version of RT4.1 (no changes in this script)
+
+
+# ----------------------------------------------------------------------
+# THIS SCRIPT NEEDS THE FOLLOWING PROGRAMS/SCRIPTS:
+#
+#  - rt4.1
+#    C program implementing RT
+#       .../algorithms/bin/rt4.1         491096 Aug 31 16:11 
+#
+#  - rttest4.1
+#    C program implementing RT (only testing phase)
+#       .../algorithms/bin/rttest4.1     352564 Aug 31 16:11
+#
+#
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginRA("kernel",$pgmversion); 
+
+startCMD("rt4.1 $filestem  -metal -mode ibl -rm kr 3 $args $trainargs");
+while (defined($_=getLine())) {
+}
+$k{"Traintime"} = stopCMD();
+
+startCMD("rttest4.1 $filestem -metal -mode ibl -rm kr 3  -test  $predfile  $args $testargs");
+while (defined($_=getLine())) {
+  if (/MEAN SQUARED ERROR \(MSE\)\s*=\s*([0-9\.]+)/) {
+    $k{"Error_MSE"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+
+endRA();
+

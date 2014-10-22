@@ -1,0 +1,59 @@
+#!/usr/local/bin/perl
+
+# run_cla_ltree
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_ltree,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# resubst error not implemented, because ltree doesnt show this on its
+# output
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug
+	    $testargs  $predfile $filestem);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("Ltree",$pgmversion); 
+
+my $nodes;
+my $leaves;
+my $coeff;
+my $depth;
+startCMD("Ltree -f $filestem $args $trainargs");
+# Skip everything until Number of Linear combinations
+while (defined($_=getLine())) {
+  if (/\(Nodes:\s*([0-9]+),\s*Leaves:\s*([0-9]+),\s*Depth:\s*([0-9]+)/) {
+    $nodes = $1;
+    $leaves = $2;
+    $depth = $3;
+  } elsif (/Number of Coeficients:\s*([0-9]+)/) {
+    $coeff = $1;
+    last;
+  } 
+}
+while(defined($_=getLine())) {
+}
+
+$k{"Traintime"} = stopCMD();
+
+startCMD("LtreeU -f $filestem  -p $predfile");
+while (defined($_=getLine())) {
+  if (/^Error rate on test set ([0-9\.]+)/) {
+    $k{"Error"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.tree");
+rmFile("$filestem.pred");
+
+$k{"Size"} = $nodes + $coeff;
+
+endLA();

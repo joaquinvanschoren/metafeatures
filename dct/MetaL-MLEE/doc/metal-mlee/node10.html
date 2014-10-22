@@ -1,0 +1,164 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Solutions to frequent problems</TITLE>
+<META NAME="description" CONTENT="Solutions to frequent problems">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node11.html">
+<LINK REL="previous" HREF="node9.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node11.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html262"
+  HREF="node11.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html258"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html252"
+  HREF="node9.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html260"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html263"
+  HREF="node11.html">Glossary of Frequently Used</A>
+<B> Up:</B> <A NAME="tex2html259"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html253"
+  HREF="node9.html">Structure and Organization of</A>
+ &nbsp <B>  <A NAME="tex2html261"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><UL>
+<LI><UL>
+<LI><A NAME="tex2html264"
+  HREF="node10.html#SECTION000100010000000000000">The experiment fails and I cannot figure out why?</A>
+<LI><A NAME="tex2html265"
+  HREF="node10.html#SECTION000100020000000000000">A CPU timeout was specified, but the algorithms run much longer?</A>
+<LI><A NAME="tex2html266"
+  HREF="node10.html#SECTION000100030000000000000">A CPU timeout was specified, but the algorithm seems to never stop?</A>
+<LI><A NAME="tex2html267"
+  HREF="node10.html#SECTION000100040000000000000">It seems for some of the folds there are empty train/test files?</A>
+</UL></UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION000100000000000000000">
+Solutions to frequent problems</A>
+</H1>
+
+<P>
+
+<H4><A NAME="SECTION000100010000000000000">
+The experiment fails and I cannot figure out why?</A>
+</H4>
+If something goes wrong, always carefully look into the log file.
+If there is no hint what went wrong, repeat the experiment with 
+the added options <TT>-d</TT> and <TT>-lad</TT>. This will
+create a <I>huge</I> logfile, since all the output of all 
+learning algorithms will be included, but usually contains
+the crucial information about what went wrong. 
+Some things to check for: are all programs that are needed from 
+the interface scripts in the binary search path? The helper 
+programs too? Is the directory used to store temporary files
+on a device that has enough free space to hold all the temporary files?
+Are there leftover temporary files from earlier runs that clobber 
+up space?
+
+<P>
+
+<H4><A NAME="SECTION000100020000000000000">
+A CPU timeout was specified, but the algorithms run much longer?</A>
+</H4>
+On some systems - mainly Windows - the CPU limitation mechanism does not
+work. Unfortunately there is no solution for this as of now.
+
+<P>
+
+<H4><A NAME="SECTION000100030000000000000">
+A CPU timeout was specified, but the algorithm seems to never stop?</A>
+</H4>
+Apart from the cause given in the previous problem, it is also possible
+that the learning algorithm or some other algorithm that gets called
+(indirectly via interface scripts) from <code>run_exp</code> is waiting
+for input from the standard input stream. In that case, the algorithm is
+halted, does not consume CPU time and thus, never stops.
+One reason for this behaviour could be that a licensed learning 
+algorithm is requesting a license code.
+
+<P>
+
+<H4><A NAME="SECTION000100040000000000000">
+It seems for some of the folds there are empty train/test files?</A>
+</H4>
+If the database is very small and there are many different class labels,
+the <code>shuffle</code> program will not
+be able to do stratification correctly without leaving some of 
+the files empty. In that case, simply turn off stratification
+(option <code>-start 0</code>).
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html262"
+  HREF="node11.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html258"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html252"
+  HREF="node9.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html260"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html263"
+  HREF="node11.html">Glossary of Frequently Used</A>
+<B> Up:</B> <A NAME="tex2html259"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html253"
+  HREF="node9.html">Structure and Organization of</A>
+ &nbsp <B>  <A NAME="tex2html261"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

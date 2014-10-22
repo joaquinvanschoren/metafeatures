@@ -1,0 +1,178 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Running Experiments</TITLE>
+<META NAME="description" CONTENT="Running Experiments">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node9.html">
+<LINK REL="previous" HREF="node7.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node9.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html232"
+  HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html228"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html222"
+  HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html230"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html233"
+  HREF="node9.html">Structure and Organization of</A>
+<B> Up:</B> <A NAME="tex2html229"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html223"
+  HREF="node7.html">Adapting METAL-MLEE</A>
+ &nbsp <B>  <A NAME="tex2html231"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1><A NAME="SECTION00080000000000000000"></A>
+<A NAME="exps"></A>
+<BR>
+Running Experiments
+</H1>
+
+<P>
+First make sure the data is in standard format (see Section&nbsp;<A HREF="node5.html#dbformat">4</A>).
+The main experimentation program by default does a quick check,
+but you should use the checking program <TT>check_database.pl</TT>
+ on the full
+database. Depending on the format your data is originally in,
+the steps to convert it into METAL-format might be very different.
+
+<P>
+Here are some hints what kind of conversion might be necessary:
+
+<P>
+
+<UL>
+<LI>It might be necessary to convert fiels from DOS to UNIX format
+</LI>
+<LI>The database should be available in a format that is as close
+as possible to ``CSV'' (comma-separated values) format. Many programs
+that export CSV format will put non-numeric values in quotes; these
+have to be removed for METAL format. 
+</LI>
+<LI>Be careful that removing
+special characters originally used for non-numeric values but
+not allowed in the METAL format will not cause several different
+values to get mapped to one value! 
+</LI>
+<LI>Missing values are often coded as ``empty strings''.
+Missing values must be coded as question marks for METAL format,
+both for numeric and non-numeric fields.
+</LI>
+</UL>
+
+<P>
+<I>METAL-MLEE</I> lets you choose rather freely how to run the necessary 
+experiments: run different algorithms on different machines, run
+different databases on different machines, 
+run different algorithms on the same machine but at different times etc.
+
+<P>
+You should consider the following points when planning the experiments:
+
+<UL>
+<LI>For each experiment  you should have a separate output directory.
+If you run different algorithms for the same database at different times
+on the same machine, you can simply reuse the output directory: the
+new target/prediction files will be added to the directory, and the 
+<TT>.results</TT> and <TT>.log</TT> files will be appended with the
+new data (unless the option <TT>-o</TT> for <code>run_exp</code> is specified, which 
+will overwrite the olde <TT>.results</TT> and <TT>.log</TT> files.
+</LI>
+<LI>If you run experiments on the same file system, take care that
+different experiments will not use identical files to prevent data loss.
+<code>run_exp</code> uses temporary file names for some files to prevent this,
+but output files might still be identical.
+</LI>
+<LI>If you run some algorithms for a database on machine A and 
+other algorithms on machine B it is advisable to use different
+output directories for these runs and then merge the created files.
+Results must be merged by copying together the generated <TT>.pred</TT>,
+<TT>.target</TT>, <TT>.dct</TT> files and concatening together
+ all <TT>.results</TT> files to the final <TT>.results</TT> file and 
+all <TT>.log</TT> files to the final <TT>.log</TT> file.
+The script <code>exp_append_results</code> will do this for a
+source and a target directory: the source directory must contain
+a subdirectory for each filestem for which an experiment was run.
+The destination directory will contain a subdirectory for each filestem.
+Copying together is done by repeatedly compying partly results for several
+filestems from different source directories to the same 
+destination directory.
+</LI>
+<LI>Running different algorithms on different machines will it make
+harder to compare CPU time measurements even for the same file stem.
+</LI>
+<LI>The simplest way to carry out an experiment is to run
+all  algorithms for a filestem on the same machine in a single run
+of <code>run_exp</code>.
+</LI>
+</UL>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html232"
+  HREF="node9.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html228"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html222"
+  HREF="node7.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html230"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html233"
+  HREF="node9.html">Structure and Organization of</A>
+<B> Up:</B> <A NAME="tex2html229"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html223"
+  HREF="node7.html">Adapting METAL-MLEE</A>
+ &nbsp <B>  <A NAME="tex2html231"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

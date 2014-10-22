@@ -1,0 +1,214 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>METAL The METAL Machine Learning Experimentation Environment V3.0 (METAL-MLEE) Manual - Version&nbsp;3.0 </TITLE>
+<META NAME="description" CONTENT="METAL The METAL Machine Learning Experimentation Environment V3.0 (METAL-MLEE) Manual - Version&nbsp;3.0 ">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node1.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html20"
+  HREF="node1.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up_g.png"> 
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev_g.png"> 
+<A NAME="tex2html18"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html21"
+  HREF="node1.html">Contents</A>
+ &nbsp <B>  <A NAME="tex2html19"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+
+<H1 ALIGN="CENTER">METAL <BR>
+<BR>
+<BR>
+<BR>
+<BR>
+<BR>
+The <I> METAL Machine Learning Experimentation Environment</I> V3.0  (<I>METAL-MLEE</I>) 
+   <BR>
+<BR>
+<BR>
+<BR>
+Manual 
+  - Version&nbsp;3.0
+  </H1>
+<P ALIGN="CENTER"><STRONG>Johann Petrak 
+<BR>  <TT><A NAME="tex2html1"
+  HREF="johann@ai.univie.ac.at">johann@ai.univie.ac.at</A></TT> <BR>
+<BR>
+<BR>
+Austrian Research Institute for
+  Artificial Intelligence 
+<BR></STRONG></P>
+
+<BR><HR>
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"></A>
+
+<UL>
+<LI><A NAME="tex2html22"
+  HREF="node1.html">Contents</A>
+<LI><A NAME="tex2html23"
+  HREF="node2.html">Introduction</A>
+<LI><A NAME="tex2html24"
+  HREF="node3.html">Installation</A>
+<UL>
+<LI><A NAME="tex2html25"
+  HREF="node3.html#SECTION00031000000000000000">System Requirements</A>
+<LI><A NAME="tex2html26"
+  HREF="node3.html#SECTION00032000000000000000">Software Requirements</A>
+<LI><A NAME="tex2html27"
+  HREF="node3.html#SECTION00033000000000000000">Obtaining and Installing the Program</A>
+<LI><A NAME="tex2html28"
+  HREF="node3.html#SECTION00034000000000000000">Source code by other authors included in the package</A>
+</UL>
+<LI><A NAME="tex2html29"
+  HREF="node4.html">What <I>METAL-MLEE</I> Does</A>
+<LI><A NAME="tex2html30"
+  HREF="node5.html">Standard Database Format</A>
+<UL>
+<LI><A NAME="tex2html31"
+  HREF="node5.html#SECTION00051000000000000000">Names File</A>
+<LI><A NAME="tex2html32"
+  HREF="node5.html#SECTION00052000000000000000">Data File</A>
+<LI><A NAME="tex2html33"
+  HREF="node5.html#SECTION00053000000000000000">Formal Format Description</A>
+</UL>
+<LI><A NAME="tex2html34"
+  HREF="node6.html">The Programs</A>
+<UL>
+<LI><A NAME="tex2html35"
+  HREF="node6.html#SECTION00061000000000000000">Main experimentation program: <TT>run_exp</TT></A>
+<UL>
+<LI><A NAME="tex2html36"
+  HREF="node6.html#SECTION00061100000000000000">Synopsis</A>
+<LI><A NAME="tex2html37"
+  HREF="node6.html#SECTION00061200000000000000">Important Options</A>
+<LI><A NAME="tex2html38"
+  HREF="node6.html#SECTION00061300000000000000">Specifying a CPU time limit</A>
+<LI><A NAME="tex2html39"
+  HREF="node6.html#SECTION00061400000000000000">Specifying learning algorithms</A>
+<LI><A NAME="tex2html40"
+  HREF="node6.html#SECTION00061500000000000000">Passing parameters to the learning algorithms</A>
+</UL>
+<LI><A NAME="tex2html41"
+  HREF="node6.html#SECTION00062000000000000000">Algorithm interface programs</A>
+<LI><A NAME="tex2html42"
+  HREF="node6.html#SECTION00063000000000000000">Extracting information from the results: <TT>parse_results</TT></A>
+<UL>
+<LI><A NAME="tex2html43"
+  HREF="node6.html#SECTION00063100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html44"
+  HREF="node6.html#SECTION00064000000000000000">Normalize time measurements: <TT>parse_times</TT> </A>
+<UL>
+<LI><A NAME="tex2html45"
+  HREF="node6.html#SECTION00064100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html46"
+  HREF="node6.html#SECTION00065000000000000000">Checking the database format: <TT>check_database.pl</TT></A>
+<UL>
+<LI><A NAME="tex2html47"
+  HREF="node6.html#SECTION00065100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html48"
+  HREF="node6.html#SECTION00066000000000000000">Checking experiment output: <TT>check_results.pl</TT></A>
+<UL>
+<LI><A NAME="tex2html49"
+  HREF="node6.html#SECTION00066100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html50"
+  HREF="node6.html#SECTION00067000000000000000">Other programs and helper files included in the distribution</A>
+<UL>
+<LI><A NAME="tex2html51"
+  HREF="node6.html#SECTION00067100000000000000">Calculate quick measures from names files: <TT>parse_names</TT></A>
+<LI><A NAME="tex2html52"
+  HREF="node6.html#SECTION00067200000000000000">Select a subset of features: <TT>project</TT></A>
+<LI><A NAME="tex2html53"
+  HREF="node6.html#SECTION00067300000000000000">Sample interface scripts</A>
+<LI><A NAME="tex2html54"
+  HREF="node6.html#SECTION00067400000000000000">The Clementine command line interface: <TT>run_clem</TT></A>
+<LI><A NAME="tex2html55"
+  HREF="node6.html#SECTION00067500000000000000">Calculate landmarks: <TT>landmark.pl</TT> </A>
+</UL>
+</UL>
+<LI><A NAME="tex2html56"
+  HREF="node7.html">Adapting <I>METAL-MLEE</I></A>
+<UL>
+<LI><A NAME="tex2html57"
+  HREF="node7.html#SECTION00071000000000000000">Adding Learning Algorithm Interface Scripts</A>
+<LI><A NAME="tex2html58"
+  HREF="node7.html#SECTION00072000000000000000">Adding Preprocessing Algorithms</A>
+</UL>
+<LI><A NAME="tex2html59"
+  HREF="node8.html">Running Experiments</A>
+<LI><A NAME="tex2html60"
+  HREF="node9.html">Structure and Organization of Output Data</A>
+<UL>
+<LI><A NAME="tex2html61"
+  HREF="node9.html#SECTION00091000000000000000">The log file</A>
+<LI><A NAME="tex2html62"
+  HREF="node9.html#SECTION00092000000000000000">The <TT>results</TT> file</A>
+<LI><A NAME="tex2html63"
+  HREF="node9.html#SECTION00093000000000000000">The <TT>.stats</TT> file</A>
+<LI><A NAME="tex2html64"
+  HREF="node9.html#SECTION00094000000000000000">The <TT>.dct</TT> file</A>
+<LI><A NAME="tex2html65"
+  HREF="node9.html#SECTION00095000000000000000">The targets files</A>
+<LI><A NAME="tex2html66"
+  HREF="node9.html#SECTION00096000000000000000">The prediction files</A>
+</UL>
+<LI><A NAME="tex2html67"
+  HREF="node10.html">Solutions to frequent problems</A>
+<UL>
+<LI><A NAME="tex2html68"
+  HREF="node10.html#SECTION000100010000000000000">The experiment fails and I cannot figure out why?</A>
+<LI><A NAME="tex2html69"
+  HREF="node10.html#SECTION000100020000000000000">A CPU timeout was specified, but the algorithms run much longer?</A>
+<LI><A NAME="tex2html70"
+  HREF="node10.html#SECTION000100030000000000000">A CPU timeout was specified, but the algorithm seems to never stop?</A>
+<LI><A NAME="tex2html71"
+  HREF="node10.html#SECTION000100040000000000000">It seems for some of the folds there are empty train/test files?</A>
+</UL>
+<LI><A NAME="tex2html72"
+  HREF="node11.html">Glossary of Frequently Used and Exotic Terms</A>
+<LI><A NAME="tex2html73"
+  HREF="node12.html">Bibliography</A>
+<LI><A NAME="tex2html74"
+  HREF="node13.html">About this document ...</A>
+</UL>
+<!--End of Table of Child-Links-->
+<BR><HR>
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

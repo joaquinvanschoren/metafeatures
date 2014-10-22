@@ -1,0 +1,45 @@
+#!/usr/local/bin/perl
+
+# run_rla_cubist
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0.2.1 $';
+$pgmdate    = '$Date: 2002/08/24 07:22:42 $';
+$rcsid      = '$Id: run_rla_cubist,v 3.0.2.1 2002/08/24 07:22:42 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+require config;
+
+beginRA("cubist",$pgmversion); 
+
+rename "$filestem.test", "$filestem.tmptest" ||
+  exitErr("Problem renaming $filestem.test to $filestem.tmptest: $!\n");
+
+startCMD("cubist -f $filestem $args $trainargs");
+while (defined($_=getLine())) {
+}
+$k{"Traintime"} = stopCMD();
+
+# rename back to original name
+rename "$filestem.tmptest", "$filestem.test" ||
+  exitErr("Problem renaming $filestem.tmptest to $filestem.test: $!\n");
+
+startCMD("cubist_test -f $filestem -p $predfile $args $testargs");
+while (defined($_=getLine())) {
+  if (/Mean Squared Error:\s+([0-9\.]+)/) {
+    $k{"Error_MSE"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.model");
+
+endRA();

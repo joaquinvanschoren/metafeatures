@@ -1,0 +1,114 @@
+#!/usr/local/bin/perl
+
+# run_cla_c45tree
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 1.1.2.1 $';
+$pgmdate    = '$Date: 2002/12/02 23:46:26 $';
+$rcsid      = '$Id: run_cla_c45treep,v 1.1.2.1 2002/12/02 23:46:26 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $trainargs $args
+	    $testargs $predfile $filestem $opt_cpulimit);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("c45treep",$pgmversion); 
+
+print "!!!!!!!!!!!!! ORIGINAL CPU: $opt_cpulimit\n";
+$ptime = ($opt_cpulimit * 3) / 4;
+$ptime = $ptime / 9;
+$opt_cpulimit = $opt_cpulimit / 4;
+$ptime = int($ptime);
+$opt_cpulimit = $opt_cpulimit - ($opt_cpulimit / 20);
+$opt_cpulimit = int($opt_cpulimit);
+
+print "!!!!!! CPU for p: $ptime, for c45: $opt_cpulimit\n";
+
+
+# run the run_exp script recursively with 
+# a 10 times holdout using different 
+# parm settings and get all the holdout errors
+$besterr = 100;
+$bestconf = 20;
+system("mkdir /tmp/johanntmp1");
+
+startCMD("echo start >/dev/null");
+while (defined($_=getLine())) {
+}
+system("/bin/rm $filestem-tmp.*");    # remove any leftovers
+# rename to temporary to recreate without numeric fields and original name
+system("cp $filestem.test $filestem-tmp.test");
+system("cp $filestem.data $filestem-tmp.data");
+system("cp $filestem.names $filestem-tmp.names");
+
+#print "---------- running: ls -l $filestem-tmp.* $filestem.*\n";
+#system("ls -l $filestem-tmp.* $filestem.*");
+#print "---------- running: nocont2 $filestem-tmp $filestem\n";
+system("nocont2 $filestem-tmp $filestem");
+#print "---------- running: /bin/rm $filestem-tmp\n";
+system("/bin/rm $filestem-tmp.*");   # dont need temporary any longer
+
+foreach $confidence ( 0.1, 0.5, 1, 5, 10, 20, 50, 75, 90 ) {
+  $mycmd = "perl $pgmpath/run_exp -t $ptime -samp 1000 -f $filestem -s 1 -suf psearch -nodc  -l 'c45tree -at \\\"-c $confidence\\\"' -dt /tmp/johanntmp1 -e holdout -N 3  -nopreds -nostats -o -hfrac 0.9 ";
+  #print "!!!!!!!!!!!!!!!!!!!!!! DOING $mycmd\n";
+  addCMD($mycmd );
+  while (defined($_=getLine())) {
+  }
+  $resultfile = basename($filestem) . "psearch_1.results";
+#  print "!!!!!!!!!!!!!!!!!! GREP: grep \"Error c45tree:\" $resultfile | tail -1 | cut -d\" \" -f 3\n";
+  $lasterr = `grep "Error c45tree:" $resultfile | tail -1 | cut -d" " -f 3`;
+  chomp($lasterr);
+  if ($lasterr eq "") {
+    #$wait = <>;
+    #return;    # we simply continue for now and pick the best of rest or def
+  }
+  print "!!!!!!!!!!!!! ERROR FOR CONF $confidence is $lasterr\n";
+  #$wait = <>;
+  if (($lasterr ne "") && ($lasterr <=  $besterr)) {
+    $bestconf = $confidence;
+    $besterr = $lasterr;
+  }
+}
+print ">>>>>>>>>>>>>>> BEST CONF $bestconf\n";
+
+system("/bin/rm -Rf /tmp/johanntmp1");
+system("/bin/rm -Rf " . basename($filestem) . "*");
+
+addCMD("c4.5 -f $filestem -c $bestconf $args $trainargs");
+while (defined($_=getLine())) {
+  if (/^Evaluation on /) {
+    last;
+  }
+}
+while (defined($_=getLine())) {
+  if (/^\s+Size/) {
+    $_ = <IN>; $_ = <IN>;
+    /^\s+\d+\s+\d+\([^\)]+\)\s+(\d+)\s+\d+\(([^%]+)%\)/;
+    $k{"Size"} = $1;
+    $k{"Resubsterror"} = $2 / 100;
+  }
+}
+$k{"Traintime"} = stopCMD();
+
+
+startCMD("bconsult -f $filestem $args $testargs");
+while (defined($_=getLine())) {
+  if (/\(([0-9\. ]+)%\)/) {
+    $k{"Error"} = $1 / 100.0;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+copy("$filestem.labs", "$predfile");
+
+rmFile("$filestem.labs");
+rmFile("$filestem.tree");
+rmFile("$filestem.unpruned");
+
+endLA();
+

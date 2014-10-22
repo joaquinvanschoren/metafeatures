@@ -1,0 +1,1664 @@
+#!/usr/local/bin/perl
+
+my $version = '$Revision: 3.0.2.6 $ ';
+my $v_date  = '$Date: 2002/12/02 23:46:26 $ ';
+my $rcsid   = '@(#)$Id: run_exp,v 3.0.2.6 2002/12/02 23:46:26 johann Exp $ ';
+
+require 5.000;
+
+#use strict;
+#no strict "refs";
+#no strict "subs";
+#use diagnostics -verbose;
+
+# run_exp
+# =======
+#
+# Main script for running experiments
+# 
+# Author: Johann Petrak
+#         Austrian Research Institute for AI
+#
+
+# TODO:
+#   2001/09/13: * add options to preproc algorithm DONE
+#     * add options to measure algos! DONE
+#     * encapsulate primary DCT algorithm so it can be substituted DONE
+#   2001/07/20: rethink the requirement of the learners to produce
+#      an error readout in the testing phase -- we do that in the
+#      run_stats script anyways. But we would need some other
+#      good indicator whether something went wrong or not.
+#      Simplest way is probably to check whether prediction file
+#      is ok, i.e. correct number of lines (and first couple of lines
+#      contains correct class labels?)
+#   2001/07/10: also support -suf for ma and pa algorithms
+#      What did I mean by that????
+#   2001/06/02: really a shuffle bug, but it is important for run_exp:
+#       dont allow shuffle to go astray if odd class distributions and
+#       stratification is turned on (at least one record in every fold!)
+#   2001/04/08: BUG - giving both train and testset size for cstho
+#       as fractions doesnt work as expected: instead, the trainset
+#       fraction specifies what amount of data is taken from what
+#       REMAINS after the testset has been removed.
+#   2001/01/17: include more detailled infos in the results file, e.g.
+#       about sample size specification, actual size of sample,
+#       etc.
+#   2000/11/17: support other modes: existing train/test pair,
+#       holdout with fixed portion of train/test from the
+#       database e.g. 1000/1000 with and without shuffling
+#       -> how to make a simple interface to all this?
+#   2000/07/03: what to do with pred files if they already exist
+#       from a previous run and the algorithm fails? in that case
+#       the old pred files will be left over/used.?
+
+
+
+use vars 
+  qw{ $opt_f $opt_t @opt_l $opt_csthotst 
+      $opt_onlyma  $opt_noma $opt_onlystats $opt_nostats
+      $opt_onlydc $opt_nodc $opt_nola
+      $opt_N $opt_e $opt_hfrac $opt_frac $sample_frac 
+      $opt_hsamp $opt_suf $opt_cstho_reusetrn $opt_v $opt_de $opt_dm
+      $opt_dt $opt_nopreds $opt_cvrep $opt_samp $opt_csthotrn  $opt_x
+      $nullfile $pwdcmd $ostype $opt_k $opt_lav $opt_lak $opt_lad
+      @opt_ma $opt_regr $opt_noshuffle
+      %learner_vals %learner_keys
+      $opt_preproc $opt_nocheckformat $opt_noformaterr
+      $datasavefile $opt_notify
+      $opt_lasuf $opt_dc $opt_concat $opt_statspgm
+      @classlearners @regrlearners @classmeasurers @regrmeasurers 
+      $DCPGM $STATSPGM $opt_h $debug $opt_d $opt_s
+      @measurers $opt_pa $opt_strat $strat $filestem $infilestem 
+      $tmppath $tmpstem $exppath $expstem $metpath $unused $datpath
+      $tmp1 $tmp2 $idtmppath $idmetpath $iddatpath $idexppath
+      $statefile $evalnamesfile $evaldatafile $evaltmp1datafile
+      $evaltmp2datafile $evaltestfile $evalstem $dcfile $logfile
+      $resultfile $folds $l $thesuffix @learnersmeasurers
+      @measurers_args $lockee $opt_o $oldfh $doc_date $doc_user
+      $doc_host $doc_os @tmp $rep $j $key @testsizes %preproc_vals
+      %preproc_keys $opt_savedata $lakey $doc_sys $usertime $cusertime
+      $curpath $cmd $i  $dccmd $keyvalue $ma $macmd $opt_loov_grouped
+      @values $sum $sumweights $ret $ok @weights $n $ok $script $stem 
+      $filename $usertime2 $cusertime2 %learner_status $ntotal
+      $csthotrn $fold $targetfile $loovkeys @loovkeys $loovkey $opt_loov
+      @concat_targets %concat_preds $learner $lanr $predfile $evalstem_
+      $val $lrncall $modelfile $modelopt $opt_kmodel $opt_loov_cutgroup
+      $MD5BIN 
+};
+	     
+
+
+####
+#### start of customizable section: define defaults for learning 
+#### algorithms, measuring algorithms, number of folds for the
+#### cross validation, and more
+####
+
+# this is the default list of classification learning algorithms to use
+# The name of the actual script will be run_cla_xxx for 
+# and entry xxx in here.
+@classlearners = (
+		    );
+
+# this is the default list of classification learning algorithms to use
+# The name of the actual script will be run_rla_xxx for 
+# and entry xxx in here.
+@regrlearners = ( 
+		   );
+
+# The name of the actual script will be run_cma_xxx for 
+# classification and run_rma_xxx for regression for an 
+# entry xxx in here.
+@classmeasurers = ( 
+		     );
+
+@regrmeasurers = ( 
+	
+		     );
+
+
+my $eval_method = "xval";
+my $xval_folds = 10;
+my $xval_repeat = 1;
+
+my $cpulimit = 43200;   # 12 hours
+
+my $holdout_repeats = 10;
+my $holdout_frac  = 0.8;  # fraction of training set
+my $hsamp = 1.0;
+my $samp = 1.0;
+
+my $cstho_repeats = 1;
+my $cstho_trn = 0.25;
+my $cstho_tst = 0.25;
+
+my $processid = $$;
+
+my $defaultseed = 1;
+
+####
+#### end of customizable section
+####
+
+my @learners = ();
+my @learner_args = ();
+my @learner_suffixes = ();
+
+use IPC::Open3;
+use Getopt::Long;
+use File::Basename;
+use File::Copy;
+use Sys::Hostname;
+
+
+
+# find out where we call the program from: this path will also be
+# the default method path!
+
+
+my $pgmname = $0;
+my $pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require config;
+
+require netlock;
+
+unless($DCPGM) {
+  $DCPGM = "dct";
+}
+
+sub showerror {
+  my $error = $_[0];
+  print "Error: ",$error,"\n";
+  print "Use $0 -h to show usage info ($version/$v_date)\n";
+  exit(1);
+}
+sub showusage  {
+  my $theclearners = join(",",@classlearners);
+  my $thecmeasurers = join(",",@classmeasurers);
+  my $therlearners = join(",",@regrlearners);
+  my $thermeasurers = join(",",@regrmeasurers);
+print <<USAGE
+Usage: $0 -f filestem [-s random_seed]
+  [-dt path] [-dm path] [-de path] 
+  [-l methodn]* [-t cputime] [-x] [-k] [-v] [-d] [-o] 
+  [-dc dcpgm] [-nodc | -onlydc] [-noma | -onlyma] 
+  [-nostats | -onlystats] [-nola]
+  [-e xval|holdout|cstho] [-N n] [-hfrac n] [-hsamp n] [-cvrep n] [-samp n]
+  [-csthotrn n] [-csthotst n] [-cstho_reusetrn]
+  [-strat 0|1] [-suf suffix] [-nocheckformat] [-noformaterr]
+  [-savedata] [-noshuffle] [-notify emailaddr] [-concat]
+-f filestem: the stem of the .data/.names files (required)
+-s seed: a random seed to use for all experiments (default: $defaultseed)
+  Must be a positive integer. Note that 0 will have the effect of
+  using a random random seed. The special value "norand" will suppress
+  random shuffling alltogether and use the ordering of the input file.
+-regr: if specified, indicates regression problem (default: classification)
+
+-suf suffix: suffix to add to the filestem of output files (but before
+   the seed and extensions)
+
+-strat 0|1: do stratification (1) or dont (0), default: do
+
+-onlystats: only run run_stats script and (re)create .stats file
+-onlydc: only run DC program and (re)create the .dc file
+-nodc: dont run DC
+-onlyma: only run the measuring algorithms
+-noma: skip all the MA algorithms
+
+-nola: suppress actual learning phase
+
+-dt path: path for temporary files (default: /tmp)
+-dm path: path where to find method scripts and clem streams
+   (default: $pgmpath)
+-de path: path for experiment logs and result files (default ./)
+
+-l algo: learning algorithm name and optional paramters,
+   can occur more than once
+   will look for run_cla_<algo> (classification) or run_rla_<algo>
+   (regression) in method path 
+   To add an argument use -at, -ae etc, e.g.: -l 'cubist -at "-m 100"'
+   note that you can specify an algorithm/parameter specific suffix
+   for the generated prediction files using -asuf, e.g.
+   -l 'c50tree -at "-c 0.1" -asuf c0D1' 
+   The value used for -asuf may not contain one of these characters: -+_
+
+   Default algorithms for classification: $theclearners
+   Default algorithms for regression: $therlearners
+
+-dc pgm: the name of an data characteristics program to use. The 
+  interface script invoked for this whas the name run_dc_<pgm> and
+  will always create a .dc file. Default: $DCPGM
+
+-statspgm pgm: the name of a program to calculate the statistics from.
+  Default: $STATSPGM
+
+-ma algo: measuring algorithm methods, can occur more than once
+   will look for run_cma_<algo> (for classification) or
+   run_rma_<algo> (for regression) in method path
+
+   Default algorithms for classification: $thecmeasurers
+   Default algorithms for regression: $thermeasurers
+
+-pa algo: preprocessing algorithm name plus any arguments to be
+  passed to the interface script via the -ao option, can occur only once
+  The algo name will be added to output file stem
+  The script used will be named run_cpa_<algo> or
+  run_rpa_<algo> for classification and regression, respectively
+  e.g. -pa 'discr -m 2 -f gain'
+
+-t cputime: use that limit of cputime in seconds for each algorithm and fold
+  (default: $cpulimit seconds)
+
+-savedata: keep data files that are used for evaluation for all folds 
+
+-concat: concatenate all the prediction files for each algorithm 
+  and all the target files into single individual files: will create
+  one file with extension .alltargs and for each LA one file with extension
+  .allpreds 
+
+-e xval|holdout|cstho|loov:  xval=cross validation, holdout = holdout,
+  cstho = constant test set holdout (all models evaluated on a 
+  constant test set) (default: $eval_method)
+  loov=leave one out crossvaliadtion (the seed is ignored for this, since
+    no shuffling will be done, but will still be included in the 
+    generated filenames)
+For xval:
+  -N n: number of folds for x (default: $xval_folds)
+  -cvrep n: repeat xval n times (default: $xval_repeat)
+  -samp n: fraction/size of data to sample once before all xval (default: $samp)
+For holdout:
+  -N n: number of holdout repeats  (default: $holdout_repeats)
+  -hfrac n: fraction/size of data for holdout training set (default: $holdout_frac)
+     The remaining part will be used as testset
+  -hsamp n: fraction/size of data to sample before each holdout (default: $hsamp)
+  -samp n: fraction/size of data to sample before all holdout (default: $samp)
+For cstho:
+  -N n: number of samples for training (default: $cstho_repeats)
+  -csthotst n: size/fraction of testset (default: $cstho_tst)
+  -csthotrn n: size of training set (default: $cstho_trn), if specified
+     as a fraction, will mean the fraction of the portion of data that
+     is left after the given testset has been removed!
+     E.g. to specify 25% testset and 25% training set, you must
+     use parameters -csthotst 0.25 -csthotrn 0.33333333
+  -samp n: fraction/size of data to sample before all holdout (default: $samp)
+  -cstho_reusetrn: always pick the first <csthotrn> records from what is
+     left after removing the testset. If not specified, pick a random and
+     class-stratified sample. 
+For loov:
+  -loov_grouped: use first key as group field
+  -loov_cutgroup: cut out groupfield from datafile (namefile not changed)
+
+-x: exit on error: terminate whole script if error occurs in any run_?la_xxx
+-kmodel: keep generated model files (only if interface script implements
+   processing of the '-kmodel xxxx' option)
+-k: keep the temporay files for debugging
+-o: overwrite .results and .log files (default is to append)
+-nopreds: suppress do not keep prediction/target files
+
+-nocheckformat: suppress automatic format checking. If not specified
+   the database will be checked using check_database.pl in the
+   scrips directory
+-noformaterr: do format checking and report any errors found, but dont
+   stop execution if errors are encountered
+
+-lak: pass -k to learing algorithm interface script
+-lav: pass -v to learing algorithm interface script
+-lad: pass -d to learing algorithm interface script
+
+-notify emailaddr: send notification email at end of processing
+
+-v: verbose output
+-d: debug (implies -v and -k). for full debugging also specify -lad
+-h: help -- show this usage information
+
+Program version/date: $version/$v_date
+USAGE
+;
+exit(1);
+}
+
+my $parmlist = join(" ",@ARGV);
+
+GetOptions("l=s\@", "f=s","s=s","v", "k", "dt=s", "dm=s", 
+	   "t=i", "de=s", "x","o", "savedata",
+           "nodc", "onlydc", "noma","onlyma","nostats", "onlystats","nola",
+	   "N=i","h","d","lak","lav","lad",
+	   "e=s","hfrac=f","frac=f", "hsamp=f", "samp=f", 
+	   "cvrep=i", "suf=s","lasuf=s", "strat=i","h",
+	  "csthotst=f","csthotrn=f","nopreds","cstho_reusetrn",
+	   "loov_grouped", "loov_cutgroup",
+	   "pa=s","regr", "nocheckformat", "noformaterr", "ma=s\@",
+	   "kmodel", "notify=s","dc=s","concat","statspgm=s",
+	  ) or showerror("invalid arguments");
+
+if ($opt_h) {
+  showusage();
+  exit(0);
+}
+$debug = 1 if (defined($opt_d));
+$opt_v = 1 if (defined($opt_d));
+$opt_k = 1 if (defined($opt_d));
+$opt_lak = "-k" if $opt_lak;
+$opt_lad = "-d" if $opt_lad;
+$opt_lav = "-v" if $opt_lav;
+
+unless ($opt_f) {
+  showerror("Filestem required but missing!");
+}
+unless (defined($opt_s)) {
+  $opt_s = $defaultseed;
+}
+my $seed = $opt_s;
+
+$cpulimit = $opt_t if (defined($opt_t));
+
+
+# prefix to indicate regression/classification for run_
+# scripts, e.g. run_cla_xxx or run_rla_xxx
+my $crpref = ""; 
+
+if ($opt_regr) {
+  @learners = @regrlearners;
+  @measurers = @regrmeasurers;
+  $crpref = "r";
+} else {
+  $crpref = "c";
+  @learners = @classlearners;
+  @measurers = @classmeasurers;
+}
+
+if (defined(@opt_l)) {
+  @learners = @opt_l;
+}
+if (defined(@opt_ma)) {
+  @measurers = @opt_ma;
+}
+
+# split up opt_pa into the algorithm name and any arguments present
+# these arguments will be passed to run_?pa_xxx via the -ao option
+my $preproc_meth;
+my $preproc_args;
+
+if (defined($opt_pa)) {
+  $opt_pa =~ /([^ ]+)(.*)/;
+  $preproc_meth = $1;
+  $preproc_args = $2;
+}
+
+
+
+# make up the names of all new and existing files
+
+my $origdatafile = $opt_f . ".data";    # full path to original data file
+unless (-f $origdatafile) {
+  printf STDERR "Original data file $origdatafile not found!\n";
+  exit(1);
+}
+my $orignamesfile = $opt_f . ".names";  # full path to original data file
+unless (-f $orignamesfile) {
+  printf STDERR "Original names file $orignamesfile not found!\n";
+  exit(1);
+}
+
+if ($opt_noma && $opt_onlyma) {
+  printf STDERR "Only one of -noma and -onlyma allowed!\n";
+  exit(1);
+}
+
+if ($opt_nostats && $opt_onlystats) {
+  printf STDERR "Only one of -nostats and -onlystats allowed!\n";
+  exit(1);
+}
+
+if (($opt_onlydc + $opt_onlystats + $opt_onlyma) > 1) {
+  printf STDERR "Only one of -onlydc, -onlyma, or -onlystats allowed!\n";
+  exit(1);
+}
+if ($opt_onlydc || $opt_onlystats || $opt_onlyma) {
+  $opt_noma = 1 unless $opt_onlyma;
+  $opt_nodc = 1 unless $opt_onlydc;
+  $opt_nostats = 1 unless $opt_onlystats;
+  $opt_nola = 1;
+}
+
+if ($opt_N) {
+  $xval_folds = $opt_N;
+  $holdout_repeats = $opt_N;
+  $cstho_repeats = $opt_N;
+}
+if ($opt_e) {
+  if ($opt_e =~ /(xval)|(holdout)|(cstho)|(loov)/) {
+    $eval_method = $opt_e;
+  } else {
+    printf STDERR "Eval method (-e) not 'xval' / 'holdout' / 'cstho' / 'loov'!\n";
+    exit (1);
+  }}
+
+if ($opt_hfrac) {
+  if ($opt_hfrac > 0.0 && $opt_hfrac <= 1.0) {
+    $holdout_frac = $opt_hfrac;
+  } else {
+    print STDERR "Warning: number of cases given instead of fraction: $opt_hfrac\n";
+    $holdout_frac = $opt_hfrac;
+  }
+}
+
+if ($opt_frac) {
+  if ($opt_frac > 0.0 && $opt_frac <= 1.0) {
+    $sample_frac = $opt_frac;
+  } else {
+    print STDERR "Warning: number of cases given instead of fraction: $opt_hfrac\n";
+    $sample_frac = $opt_frac;
+  }
+}
+
+
+$hsamp = $opt_hsamp if (defined($opt_hsamp));
+$samp  = $opt_samp  if (defined($opt_samp));
+$xval_repeat = $opt_cvrep if (defined($opt_cvrep));
+
+unless (defined($opt_strat)) {
+  $opt_strat = 1;
+}
+if ($opt_strat == 1) {
+  $strat = " -s ";
+} elsif ($opt_strat == 0) {
+  $strat = " ";
+} else {
+  print STDERR "-strat option needs 1 or 0 (default is 1)\n";
+  exit(1);
+}
+
+if ($opt_regr && ($strat ne " ")) {
+  $strat = " ";
+  print STDERR "Stratification for sampling  turned off for regression!\n";
+}
+
+$cstho_tst = $opt_csthotst if (defined($opt_csthotst));
+$cstho_trn = $opt_csthotrn if (defined($opt_csthotrn));
+
+
+
+$filestem = basename($opt_f);
+$infilestem = basename($opt_f);
+
+$filestem .= "_" . $preproc_meth if $preproc_meth;
+$filestem .= $opt_suf if $opt_suf;
+
+
+($tmppath, $tmpstem) = &getPath($opt_dt,"/tmp");
+$tmpstem .= "_P$processid";
+($exppath, $expstem) = &getPath($opt_de);
+if ($opt_dm) {
+  ($metpath, $unused)  = &getPath($opt_dm);
+} else {
+  ($metpath, $unused) = &getPath($pgmpath);
+}
+
+$datpath = dirname($opt_f);
+
+
+# check that the paths actually exist and are directories
+unless(-d $tmppath) {
+  print STDERR "Temporary directory $tmppath does not exist or is not a directory\n";
+  exit(1);
+}
+unless(-d $metpath) {
+  print STDERR "Methods directory $metpath does not exist or is not a directory\n";
+  exit(1);
+}
+unless(-d $datpath) {
+  print STDERR "Data directory $datpath does not exist or is not a directory\n";
+  exit(1);
+}
+unless(-d $exppath) {
+  print STDERR "Output directory $exppath does not exist or is not a directory\n";
+  exit(1);
+}
+
+# check that the temp dir is not identical to one of our
+# precious dirs
+($tmp1,$tmp2) = stat($tmppath); $idtmppath=$tmp1.$tmp2;
+($tmp1,$tmp2) = stat($metpath); $idmetpath=$tmp1.$tmp2;
+($tmp1,$tmp2) = stat($datpath); $iddatpath=$tmp1.$tmp2;
+($tmp1,$tmp2) = stat($exppath); $idexppath=$tmp1.$tmp2;
+if (($idtmppath eq $idexppath) ||
+    ($idtmppath eq $idmetpath) ||
+    ($idtmppath eq $idexppath) ||
+    ($idtmppath eq $iddatpath)) {
+  print STDERR "Temporary directory must not be same as data, results, or method directory!\n";
+  exit(1);
+}
+
+# temporary files (will be deleted at the end unless an error occurs
+# or -k has been given)
+$statefile = $tmpstem . ".rand";
+$evalnamesfile = $tmpstem . ".names";
+$evaldatafile = $tmpstem . ".data";
+$evaltmp1datafile = $tmpstem . ".tmp1.data";
+$evaltmp2datafile = $tmpstem . ".tmp2.data";
+$evaltestfile = $tmpstem . ".test";
+$evalstem = $tmpstem;
+
+
+# result files
+$dcfile = $expstem . ".dct";
+$logfile = $expstem . ".log";
+# the log file contains a log of everythinbg that was done or 
+# went wrong. If -v is given, the same info will be printed to
+# the terminal, otherwise, just the most basic processing info
+
+$resultfile = $expstem . ".results";
+# the results file is self-documenting: each line contains the
+# description of the field, starting with a non-blank character at
+# column one, followed by a : and a space, followed
+# by a value.
+# For very complex info, instead of the value, there is an opening
+# square bracket ([), followed by info that may span several lines,
+# where each of these lines starts with at least one blank,
+# followed by a line that starts with a blank has only a closing bracket 
+
+
+if ($eval_method =~ /xval/) {
+  $folds = $xval_folds;
+} elsif ($eval_method =~ /holdout/) {
+  $folds = $holdout_repeats;
+} elsif ($eval_method =~ /cstho/) {
+  $folds = $cstho_repeats;
+} elsif ($eval_method =~ /loov/) {
+  ; # not needed for this method
+} else {
+  die "Not a valid evaluation strategy for setting number of folds: $eval_method";
+}
+
+
+# now that we have the array of learning scripts to use,
+# check if we can find them all *before* we start any actions ...
+
+# first we have to seperate the arguments from the command name
+my $theargs = "";
+foreach $l ( @learners ) {
+  $l =~ /([^ ]+)(.*)/;
+  $l = $1;    # replace by just the command (inplace)
+  $theargs = $2;
+  if ($theargs =~ /-asuf\s+(\S+)/) {
+    $thesuffix = $1;
+    if ($thesuffix =~/-|\+|_/) {
+      die  "-asuf argument may not contain one of -, +, or _";
+    }
+    push @learner_suffixes,$thesuffix;
+  } else {
+    push @learner_suffixes,"";
+  }
+  push @learner_args,$theargs;
+}
+my $notfound = 0;
+my $thefile;
+if (!$opt_nola) {
+  foreach $l ( @learners ) {
+    $thefile = $metpath . "run_" . $crpref . "la_" . $l;
+    if (! -f $thefile) {
+      print STDERR "Error: script $thefile for algorithm $l not found\n";
+      if ($thefile =~ /run_.*run_/) {
+	print STDERR "Hint: dont include the run_$crpref"."la_ prefix!\n";
+      }
+      $notfound = 1;
+    }
+  }
+}
+# first we have to seperate the arguments from the command name
+foreach $l ( @learnersmeasurers ) {
+  $l =~ /([^ ]+)(.*)/;
+  $l = $1;    # replace by just the command (inplace)
+  push @measurers_args,$2;
+}
+if (!$opt_noma) { 
+  foreach $l ( @measurers ) {
+    $thefile =  $metpath . "run_" . $crpref . "ma_"  . $l;
+    if (! -f $thefile) {
+      print STDERR "Error: script $thefile for algorithm $l not found\n";
+      if ($thefile =~ /run_.*run_/) {
+	print STDERR "Hint: dont include the run_$crpref"."ma_ prefix!\n";
+      }
+      $notfound = 1;
+    }
+  }
+}
+if (($opt_pa ne "") && 
+    !(-f ($thefile = $metpath . "run_" . $crpref .
+    "pa_" . $preproc_meth))) {
+  print STDERR "Error: script $thefile for algorithm $preproc_meth not found\n";
+  if ($thefile =~ /run_.*run_/) {
+    print STDERR "Hint: dont include the run_$crpref"."pa_ prefix!\n";
+  }
+  $notfound = 1;
+}
+
+if ($notfound) {
+  exit(1);
+}
+
+my $checkresult;
+if (!$opt_nocheckformat) {
+  my $regropt = $opt_regr ? "-regr" : "";
+  $checkresult = `perl $metpath/check_database.pl -f $opt_f -limit 1 -max 100 $regropt`;
+  if ($checkresult) {
+    print STDERR "Format check for $opt_f failed, terminating\n";
+    print STDERR "To force processing, use -nocheckformat\n";
+    print STDERR "Output of checking program:\n";
+    print STDERR $checkresult;
+    if ($opt_noformaterr) {
+      print STDERR "-noformaterr specified, continuing\n";
+    } else {
+      exit 1;
+    }
+  }
+}
+
+# before we lock the filestem, we establish a signal handler 
+# to release any locks in case the program gets interrupted
+$SIG{QUIT} = 'doabort';
+$SIG{INT}  = 'doabort';
+$SIG{HUP}  = 'doabort';
+
+
+# before opening anything, try to lock the filestem in the output
+# directory. We only lock the $expstem since the evalstem
+# in the temp directory contains the process number.
+# (There is a slight danger that this will go wrong if two
+# processes on two different systems have the same process number
+# and try to run an experiment for the same filestem in the
+# same temp dir - we risk that)
+# print STDERR "Expstem is $expstem\n";
+$netlock::Debug = $debug;
+if($lockee=netlock::nflock($expstem,1)) {
+  print STDERR "The filestem $expstem seems to be locked by:\n$lockee\n";
+  print STDERR "If this is left over from a crash or aborted run and you\n";
+  print STDERR "are sure there is no other process using the directory\n";
+  print STDERR "you can safely remove the lock with the command\n";
+  print STDERR "rm -Rf $expstem.LOCKDIR\n";
+  exit;
+}
+
+
+# open logfile and write first log entries
+if ($opt_o) {
+  open(LOG,">$logfile") || die "Couldn't open logfile $logfile for wrting: $!\n";
+} else {
+  open(LOG,">>$logfile") || die "Couldn't open logfile $logfile for appending: $!\n";
+}
+# make the log stream unbuffered, so we can monitor from other
+# process
+$oldfh = select(LOG); $| = 1; select($oldfh);
+
+&printLOG("Running experiments on file stem $filestem with seed $seed\n");
+# get some basic info ... this will be put into the log file and
+# the result file
+$doc_date = gmtime(); 
+$doc_user = getlogin(); 
+
+$doc_host = hostname();
+$doc_os = $^O;
+&printLOG("On $doc_date, user $doc_user, host $doc_host ($doc_os), process id $processid\n");
+$doc_sys  = runCmd("uname -srpm"); ## !!! not portable !!!
+
+($usertime,undef,$cusertime,undef) = times();
+
+setupOS();
+
+$curpath = runCmd("$pwdcmd"); 
+# put header into logfile
+&printLOG("run_exp version $version\n");
+&printLOG("Parameters used: $parmlist\n");
+&printLOG("Specified file: $opt_f\n");
+&printLOG("Current path:   $curpath\n");
+&printLOG("Temporary path: $tmppath\n");
+&printLOG("Result path:    $exppath\n");
+&printLOG("Method path:    $metpath\n");
+&printLOG("Results in:     $resultfile\n");
+&printLOG("CPU time limit: $cpulimit\n");
+
+
+# open result and write first stuff ..
+if ($opt_o) {
+  open(RES,">$resultfile") || die "Couldn't open resultfile $resultfile for writing: $!\n";
+} else {
+  open(RES,">>$resultfile") || die "Couldn't open resultfile $resultfile for appending: $!\n";
+}
+print RES "File: $opt_f\n";
+print RES "Filestem: $filestem\n";
+print RES "InFilestem: $infilestem\n";
+print RES "ModelType: " . ($opt_regr ? "regression" : "classification") . "\n";
+
+print RES "Start: $doc_date\n";
+print RES "User: $doc_user\n";
+print RES "Host: $doc_host\n";
+print RES "OS: $doc_os\n";
+print RES "System: $doc_sys\n";
+print RES "CPUlimit: $cpulimit\n";
+print RES "Seed: $seed\n";
+print RES "Version run_exp: $version\n";
+print RES "Samplespec: $samp/$hsamp\n";
+
+print RES "Preprocessing: ", $opt_pa ? $opt_pa : "none", "\n";
+
+print RES "DBSize: ",fileSize("$opt_f.data"),"\n";
+
+print RES "DBdataMD5: ",md5key("$opt_f.data"),"\n";
+print RES "DBnamesMD5: ",md5key("$opt_f.names"),"\n";
+
+$cmd =  "perl $metpath/parse_names -f  $opt_f.names";
+openPipe($cmd);
+my $guessed_type = "";
+my $tmp = "";
+while(<IN>) {
+  printLOG("parse_names: $_");
+  if (/^===== (.*)$/) {
+    $tmp = $1;
+    print RES "$tmp\n";
+    if ($tmp =~ /Type_data: (.*)/) {
+      $guessed_type = $1;
+    }
+  }
+}
+close(IN);
+
+if (($guessed_type eq "regr") && ($opt_regr eq "")) {
+  printLOG("Error: -regr not given, but names file looks as if regr db\n");
+  print STDERR "Error: -regr not given, but names file looks as if regr db\n";
+}
+if (($guessed_type eq "class") && ($opt_regr ne "")) {
+  printLOG("Error: -regr given, but names file looks as if classification db\n");
+  print STDERR "Error: -regr given, but names file looks as if classification db\n";
+}
+
+if (!$opt_nola) {
+  for ( $i=0; $i<=$#learners; $i++ ) {
+    print RES "Learner: ",$learners[$i].$learner_suffixes[$i],"\n";
+    print RES "Learner_Parameters ",$learners[$i].$learner_suffixes[$i],": ",$learner_args[$i],"\n";
+  }
+}
+
+if (!$opt_noma) {
+  for ( $i=0; $i<=$#measurers; $i++ ) {
+    print RES "MA: ",$measurers[$i],"\n";
+    print RES "MA_Parameters ",$measurers[$i],": ",$measurers_args[$i],"\n";
+  }
+}
+
+if ($opt_dc ne "") {
+  $DCPGM = $opt_dc;
+}
+if ($opt_statspgm ne "") {
+  $STATSPGM = $opt_statspgm;
+}
+
+if ($opt_nodc eq "") {
+  $dccmd =  "perl $metpath/run_dc_$DCPGM $opt_lav $opt_lad -cpulimit $cpulimit  -istem $opt_f -o $dcfile";
+  openPipe($dccmd);
+  while(<IN>) {
+    printLOG($_);
+    if (/==== (.*)/) {
+      $keyvalue = $1;
+      print RES $keyvalue,"\n";
+      close(IN);
+    } 
+  }
+} else {
+  printLOG("DC skipped\n");
+} 
+
+
+
+
+# NOTE: passing arguments to the ma algorithms isnt trivial:
+# different algs might take/need very different args and a single
+# alg might contain several steps which all need a different set of 
+# arguments. Making a different script for each combination of 
+# args would be one solution.
+# SOLUTION: we use opt_ao to put everything in in the form 
+#   key=value,key2=value2.
+# then each script can just pick the parguments how it needs them
+# (there is a routine in run_lib.pm that will pull out the value
+# for some key)
+# Part or all of this string might also come from the 
+# algorithm name (ie. everything after the first blank)
+
+if ($opt_noma eq "") {
+  my $i = 0;
+  my $measurers_args = "";
+  foreach $ma (@measurers) {
+    $measurers_args = $measurers_args[$i];
+    $macmd =  "perl $metpath/run_$crpref"."ma_$ma $opt_lav $opt_lad -cpulimit $cpulimit -ao \"$measurers_args\" -istem $opt_f -tmppath $tmppath ";
+    openPipe($macmd);
+    while(<IN>) {
+      printLOG($_);
+      if (/==== (.*)/) {
+	$keyvalue = $1;
+	print RES $keyvalue,"\n";
+      }
+    }
+    close(IN);
+    $i++;
+  }
+} else {
+  printLOG("MAs skipped\n");
+} 
+
+
+if (!$opt_nola) {
+
+  &printLOG("LAMethods to use: " . join(",",@learners)."\n");
+  if ($eval_method eq "xval") {
+    &printLOG("Eval method:    cross validation - $xval_folds folds\n");
+  } elsif ($eval_method eq "holdout") {
+    &printLOG("Eval method:    holdout - $holdout_repeats times, $holdout_frac fraction\n");
+  } elsif ($eval_method eq "cstho") {
+    &printLOG("Eval method:    cstho - $cstho_repeats times, $cstho_trn train, $cstho_tst test\n");
+  } elsif ($eval_method eq "loov") {
+    &printLOG("Eval method:    loov - $opt_loov_grouped,$opt_loov_cutgroup\n");
+  } else {
+    die "Strange evaluation method encountered: $eval_method";
+  }
+  &printLOG("Sample spec.:   $samp/$hsamp\n");
+  # make initial random state file from seed 
+  #runSys("shuffle -r $seed -O $statefile <$nullfile >$nullfile");
+  # the above is unfortunately not the same as below:
+  if ($seed ne "norand") {
+    runSys("echo \"   \" | $pgmpath/../bin/shuffle -r $seed -O $statefile  >$nullfile");
+    printLOG("State file $statefile created\n");
+  }
+  
+  print RES "Evalmethod: $eval_method\n";
+  if ($eval_method eq "xval") {
+    &printLOG("Evalparms: $xval_folds\n");
+  } elsif ($eval_method eq "holdout") {
+    &printLOG("Evalparms: $holdout_repeats/$holdout_frac\n");
+  } elsif ($eval_method eq "cstho") {
+    &printLOG("Evalparms: $cstho_repeats/$cstho_trn/$cstho_tst\n");
+  }
+  printLOG("Preparing data for $eval_method\n");
+  
+  my $funcname = "do_$eval_method";
+  &{$funcname}();
+  
+  # for both holdout and xval we have to create a train and test set for
+  # each fold and then run all algorithms on those
+  # For each fold we create a file that contains the correct targets:
+  # stem_seed_foldnr.targets
+  # For each fold and learning algorithm la we create a file that
+  # contains the predicted values:
+  # stem_seed_foldnr_la.pred
+  # The training and testing files for each fold will be deleted after
+  # use to save space
+}
+
+if (!$opt_nostats) {
+  $cmd = "perl $metpath/run_stats_$STATSPGM -f $expstem -N $folds";
+  $cmd .= " -regr" if $opt_regr;
+  $cmd .= " -v" if $debug;
+  runSys($cmd);
+}
+
+($usertime2,undef,$cusertime2,undef) = times;
+$doc_date = gmtime();
+printLOG("Experiment(s) completed: $doc_date\n");
+printLOG("Totalusertime: " . ($usertime2 - $usertime) . "\n");
+printLOG("Totalchildusertime: " . ($cusertime2 - $cusertime) . "\n");
+print RES "Totalusertime: ",$usertime2 - $usertime,"\n";
+print RES "Totalchildusertime: ",$cusertime2 - $cusertime,"\n";
+print RES "Stop: $doc_date\n";
+
+
+# cleanup
+docleanupandexit(0);
+
+sub doabort {
+  my $signal = $_[0];
+  print STDERR "Got signal $signal, cleaning up end exiting ..\n";
+  docleanupandexit($signal);
+}
+
+sub docleanupandexit {
+  my $signal = $_[0];
+  rmFile($statefile) unless ($debug || $opt_k);
+  rmFile($evalnamesfile) unless ($debug || $opt_k);
+  rmFile($evaltestfile) unless ($debug || $opt_k);
+  rmFile($evaldatafile) unless ($debug || $opt_k);
+  
+  if ($opt_nopreds) {
+    rmFile($expstem . "*" . ".targets");
+    rmFile($expstem . "*" . ".pred");
+  }
+  
+  if ($opt_notify ne "") {
+    if ($signal) {
+      print RES "Termination: abort/$signal\n";
+      `echo \' run_exp for $filestem ABORTED by $signal on host $doc_host/$doc_user at $doc_date\' | mail  $opt_notify`;
+    } else {
+      print RES "Termination: normal\n";
+      `echo \' run_exp for $filestem completed on host $doc_host/$doc_user at $doc_date\' | mail  $opt_notify`;
+    }
+  }
+  close LOG;
+  close RES;
+  netlock::nunflock($expstem);
+  exit;
+}
+
+
+sub do_cstho {
+  my $myevaldata;
+  my $repname = "";
+
+  print RES "Evalparms: $cstho_repeats,$samp,$cstho_trn,$cstho_tst\n";
+  print RES "CSTHO_Repeats: $cstho_repeats\n";
+  print RES "CSTHO_sample: $samp\n";
+  print RES "CSTHO_trn: $cstho_trn\n";
+  print RES "CSTHO_tst: $cstho_tst\n";
+  printLOG("cp $orignamesfile $evalnamesfile\n");
+  copy($orignamesfile, $evalnamesfile) || die "Copy failed: $!\n";
+
+  %learner_vals = ();
+  %learner_keys = ();
+  %learner_status = ();  # all values other than "OK" mean error!
+
+  if ($samp != 1.0) {
+    if ($seed ne "norand") {
+      runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    } else {
+      runSys("$pgmpath/../bin/shuffle -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    }
+    $myevaldata = $evaltmp1datafile;
+  } else {
+    $myevaldata = $origdatafile;
+  }
+
+  # now split into two, such that test set size is as requested
+  if ($cstho_tst > 1.0) {
+    # subtract test set size from total size to get training set size
+    $ntotal = fileSize("$myevaldata");
+    $csthotrn = $ntotal - $cstho_tst;
+  } else {
+    $csthotrn = 1.0 - $cstho_tst;
+  }
+  if ($seed ne "norand") {
+    runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $csthotrn $strat -t $evaltmp1datafile -e $evaltestfile < $myevaldata");
+  } else {
+    runSys("$pgmpath/../bin/shuffle -p $csthotrn $strat -t $evaltmp1datafile -e $evaltestfile < $myevaldata");
+  }
+  # now for each repeat, sample training set as requested from 
+  # temporary training set from above
+
+  for ($i=0; $i<$cstho_repeats; $i++) {
+    $fold = $i;
+    printLOG("Cstho Holdout number $fold\n");
+    # if option cstho_reusetrn is given and this is the first repeat,
+    # we just use ghead to extract the first cstho_trn records.
+    # this way, several runs of run_exp with different values for
+    # cstho_trn but all other parms equal, will ensure that
+    # bigger trainsets contain smaller ones
+    # NOTE: as long as the tmpdatafile obtained from
+    # shuffle is NOT stratified for sequential subsampling, no
+    # trining sets can differ in class distributions for different
+    # training set sizes if cstho_reusetrn is used
+    # Another convention: the scripts have to APPEND to the
+    # output file specified!
+    if (($opt_cstho_reusetrn ne "") && ($i == 0)) {
+      runSys("ghead -$cstho_trn > $evaldatafile < $evaltmp1datafile");
+    } else {
+      # TODO BUG: -p here selects the given ration of records from what
+      # is remaining after the testset part has been removed (if portion
+      # is used instead of number of records)!!!!!!!!
+      # This is wrong, so to correct, use adjusted portions for now!
+      # When using absolute numbers, it will work
+      # To deal with this properly, we should really change the
+      # shuffle program!
+      # TODO BUG: shuffle isnt able to deal with -p 1.0 because it
+      # interprets this as "one record". So if we get 1.0,
+      # we simply copy .....
+      if ($cstho_trn eq "1.0") {
+	runSys("cat > $evaldatafile   < $evaltmp1datafile");
+      } else {
+	if ($seed ne "norand") {
+	  runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $cstho_trn $strat > $evaldatafile   < $evaltmp1datafile");
+	} else {
+	  runSys("$pgmpath/../bin/shuffle -p $cstho_trn $strat > $evaldatafile   < $evaltmp1datafile");
+	}
+      }
+    }
+    push @testsizes,fileSize("$evaltestfile");
+    # make the targets file: extract the last column of $evaltestfile
+    #
+    $targetfile = $expstem . "_" . $fold .  ".targets";
+    $datasavefile = $expstem . "_" . $fold . ".test";
+    printLOG("Creating target file $targetfile\n");
+    open(IN,"<$evaltestfile") || die "Couldnt open $evaltestfile to create targets: $!\n";
+    open(OUT,">$targetfile") || die "Couldnt create $targetfile: $!\n";
+    while(<IN>) {
+      /\,([^\,]+)$/;
+      print OUT $1;
+    }
+    close(IN);
+    close(OUT);
+    # now run all the learning algorithms in turn and collect the results
+    &runLearners($i,"",0); 
+  }
+  &calcStats($cstho_repeats,1);
+  rmFile($evaltmp1datafile) unless ($debug || $opt_k);
+}
+
+
+sub do_loov {
+  my $myevaldata;
+  my $nfolds = 0;
+  print RES "Evalparms:\n";
+  printLOG("cp $orignamesfile $evalnamesfile\n");
+  copy($orignamesfile, $evalnamesfile) || die "Copy failed: $!\n";
+
+  %learner_vals = ();
+  %learner_keys = ();
+  %learner_status = ();  # all values other than "OK" mean error!
+
+  # if this is a grouped LOOV, we have to sort the data file
+  # by the first column, and extract the unique keys to 
+  # find the number of repetitions
+  # Otherwise we just count the number of records to find
+  # the number of repetitions
+
+  if ($opt_loov_grouped) {
+    runSys("sort -t, > $evaltmp1datafile < $origdatafile");
+    $myevaldata = $evaltmp1datafile;
+    $loovkeys = runCmd("cut -d, -f1 < $evaltmp1datafile | uniq ");
+    @loovkeys = split(/\n/,$loovkeys);
+    $nfolds = @loovkeys;
+  } else {
+    $myevaldata = $origdatafile;
+    $nfolds = fileSize($myevaldata);
+  }
+  $folds = $nfolds;
+  print RES "LOOV_N: $nfolds\n";
+
+  for ($i=0; $i<$nfolds; $i++) {
+    $fold = $i;
+    printLOG("LOOV Holdout number $fold\n");
+
+    if ($opt_loov_grouped) {
+      # grep out the ith key for testing, all others for training
+      $loovkey = $loovkeys[$i];
+      runSys("grep \'^$loovkey,\' < $myevaldata > $evaltestfile");
+      runSys("grep -v \'^$loovkey,\' < $myevaldata > $evaldatafile");
+    } else {
+      # just write the ith line to the testfile all others to train
+      my $loovn = $i+1;
+      if ($opt_loov_cutgroup) {
+	runSys("perl -n -e \'print \$_ if (\$. == $loovn);\' < $myevaldata | cut -d, -f2- > $evaltestfile");
+	runSys("perl -n -e \'print \$_ if (\$. != $loovn);\' < $myevaldata | cut -d, -f2- > $evaldatafile");
+      } else {
+	runSys("perl -n -e \'print \$_ if (\$. == $loovn);\' < $myevaldata > $evaltestfile");
+	runSys("perl -n -e \'print \$_ if (\$. != $loovn);\' < $myevaldata > $evaldatafile");
+      }
+    }
+    push @testsizes,fileSize("$evaltestfile");
+    # make the targets file: extract the last column of $evaltestfile
+    #
+    $targetfile = $expstem . "_" . $fold .  ".targets";
+    $datasavefile = $expstem . "_" . $fold . ".test";
+    printLOG("Creating target file $targetfile\n");
+    open(IN,"<$evaltestfile") || die "Couldnt open $evaltestfile to create targets: $!\n";
+    open(OUT,">$targetfile") || die "Couldnt create $targetfile: $!\n";
+    while(<IN>) {
+      /\,([^\,]+)$/;
+      print OUT $1;
+    }
+    close(IN);
+    close(OUT);
+    # now run all the learning algorithms in turn and collect the results
+    &runLearners($i,"",0); 
+  }
+  &calcStats($folds,1);
+  rmFile($evaltmp1datafile) unless ($debug || $opt_k);
+  rmFile($evaltmp2datafile) unless ($debug || $opt_k);
+
+
+  @concat_targets = ();
+  %concat_preds = ();
+  if ($opt_concat) {
+    for ($i=0; $i<$nfolds; $i++) {
+      $fold = $i;
+      $targetfile = $expstem . "_" . $fold .  ".targets";
+      push @concat_targets,$targetfile;
+      foreach $learner ( @learners ) {
+	$learner =~ /([^ ]+)(.*)/; 
+	$lakey = $learner . $learner_suffixes[$lanr];
+	$predfile = $expstem . "_" . $fold . "_" . $lakey . ".pred";
+	$concat_preds{$learner}->[@{$concat_preds{$learner}}] = $predfile;
+      }
+    }
+    $cmd = "cat " . join(" ",@concat_targets) . " > " . $expstem . ".alltargs";
+    runCmd($cmd);
+    foreach $learner (@learners) {
+      $learner =~ /([^ ]+)(.*)/; 
+      $lakey = $learner . $learner_suffixes[$lanr];
+      $cmd = "cat " . join(" ",@{$concat_preds{$learner}}) . " > " . $expstem . "_" . $lakey . ".allpreds";
+      runCmd($cmd);
+    }
+  }
+}
+
+
+sub do_holdout {
+  my $myevaldata;
+  print RES "Evalparms: $holdout_repeats,$holdout_frac,$samp,$hsamp\n";
+  print RES "HOLDOUT_repeats: $holdout_repeats\n";
+  print RES "HOLDOUT_frac: $holdout_frac\n";
+  print RES "HOLDOUT_samp: $samp\n";
+  print RES "HOLDOUT_hsamp: $hsamp\n";
+  printLOG("cp $orignamesfile $evalnamesfile\n");
+  copy($orignamesfile, $evalnamesfile) || die "Copy failed: $!\n";
+
+  %learner_vals = ();
+  %learner_keys = ();
+  %learner_status = ();  # all values other than "OK" mean error!
+
+  if ($samp != 1.0) {
+    if ($seed ne "norand") {
+      runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    } else {
+      runSys("$pgmpath/../bin/shuffle -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    }
+    $myevaldata = $evaltmp1datafile;
+  } else {
+    $myevaldata = $origdatafile;
+  }
+
+  for ($i=0; $i<$holdout_repeats; $i++) {
+    $fold = $i;
+    printLOG("Holdout number $fold\n");
+    if ($seed ne "norand") {
+      if ($hsamp != 1.0) {
+	# first create a temporary data file that has the sample then
+	# split that one for holdout run
+	runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $hsamp $strat > $evaltmp2datafile < $myevaldata");
+	runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $holdout_frac -t $evaldatafile -e $evaltestfile $strat  < $evaltmp2datafile");
+      } else {
+	runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $holdout_frac -t $evaldatafile -e $evaltestfile $strat  < $myevaldata");
+      }
+    } else {
+      if ($hsamp != 1.0) {
+	# first create a temporary data file that has the sample then
+	# split that one for holdout run
+	runSys("$pgmpath/../bin/shuffle -p $hsamp $strat > $evaltmp2datafile < $myevaldata");
+	runSys("$pgmpath/../bin/shuffle -p $holdout_frac -t $evaldatafile -e $evaltestfile $strat  < $evaltmp2datafile");
+      } else {
+	runSys("$pgmpath/../bin/shuffle -p $holdout_frac -t $evaldatafile -e $evaltestfile $strat  < $myevaldata");
+      }
+    }
+    push @testsizes,fileSize("$evaltestfile");
+    # make the targets file: extract the last column of $evaltestfile
+    #
+    $targetfile = $expstem . "_" . $fold .  ".targets";
+    $datasavefile = $expstem . "_" . $fold . ".test";
+    printLOG("Creating target file $targetfile\n");
+    open(IN,"<$evaltestfile") || die "Couldnt open $evaltestfile to create targets: $!\n";
+    open(OUT,">$targetfile") || die "Couldnt create $targetfile: $!\n";
+    while(<IN>) {
+      /\,([^\,]+)$/;
+      print OUT $1;
+    }
+    close(IN);
+    close(OUT);
+    # now run all the learning algorithms in turn and collect the results
+    &runLearners($i,"",0); 
+  }
+  &calcStats($holdout_repeats,1);
+  rmFile($evaltmp1datafile) unless ($debug || $opt_k);
+  rmFile($evaltmp2datafile) unless ($debug || $opt_k);
+  # calculate overall stats from the individual results we have gathered
+  
+  
+}
+
+sub do_xval {
+  my $myevaldata;
+  my $repname = "";
+  print RES "Evalparms: $xval_folds,$xval_repeat\n";
+  print RES "XVAL_folds: $xval_folds\n";
+  print RES "XVAL_repeat: $xval_repeat\n";
+  printLOG("cp $orignamesfile $evalnamesfile\n");
+  copy($orignamesfile, $evalnamesfile) || die "Copy failed: $!\n";
+
+  if ($samp != 1.0) {
+    if ($seed ne "norand") {
+      runSys("$pgmpath/../bin/shuffle -R $statefile -O $statefile -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    } else {
+      runSys("$pgmpath/../bin/shuffle  -p $samp $strat > $evaltmp1datafile < $origdatafile");
+    }
+    $myevaldata = $evaltmp1datafile;
+  } else {
+    $myevaldata = $origdatafile;
+  }
+
+  %learner_vals = ();
+  %learner_keys = ();
+  %learner_status = ();  # all values other than "OK" mean error!
+  for ($rep=0; $rep<$xval_repeat; $rep++) {
+    if ($rep > 0) {
+      ## Caution: norand doesnt seem to make much sense with repitions!
+      if ($seed ne "norand") {
+	runSys("$pgmpath/../bin/shuffle  -R $statefile -O $statefile <$nullfile");
+      }
+      $repname = "R" . $rep . "_";
+    }
+    for ($i=0; $i<$xval_folds; $i++) {
+      $fold = $i;
+      printLOG("Repetition/Fold number $rep/$fold\n");
+      if ($seed ne "norand") {
+	runSys("$pgmpath/../bin/shuffle -R $statefile -x $xval_folds -b $i -t $evaldatafile -e $evaltestfile $strat  < $myevaldata");
+      } else {
+	runSys("$pgmpath/../bin/shuffle -x $xval_folds -b $i -t $evaldatafile -e $evaltestfile $strat  < $myevaldata");
+      }
+      push @testsizes,fileSize("$evaltestfile");
+      # make the targets file: extract the last column of $evaltestfile
+      #
+      $targetfile = $expstem . "_" . $repname . $fold .  ".targets";
+      $datasavefile = $expstem . "_" . $repname . $fold . ".test";
+      printLOG("Creating target file $targetfile\n");
+      open(IN,"<$evaltestfile") || die "Couldnt open $evaltestfile to create targets: $!\n";
+      open(OUT,">$targetfile") || die "Couldnt create $targetfile: $!\n";
+      while(<IN>) {
+	/\,([^\,]+)$/;
+	print OUT $1;
+      }
+      close(IN);
+      close(OUT);
+      # now run all the learning algorithms in turn and collect the results
+      &runLearners($i,$repname,$rep); 
+    } # for i/fold
+  } # for repeat  
+  &calcStats($xval_folds,$xval_repeat);
+
+  @concat_targets = ();
+  %concat_preds = ();
+  if ($opt_concat) {
+    for ($rep=0; $rep<$xval_repeat; $rep++) {
+      if ($rep > 0) {
+	$repname = "R" . $rep . "_";
+      }
+      for ($i=0; $i<$xval_folds; $i++) {
+	$fold = $i;
+	$targetfile = $expstem . "_" . $repname . $fold .  ".targets";
+	push @concat_targets,$targetfile;
+	foreach $learner ( @learners ) {
+	  $learner =~ /([^ ]+)(.*)/; 
+	  $lakey = $learner . $learner_suffixes[$lanr];
+	  $predfile = $expstem . "_" . $repname . $fold . "_" . $lakey . ".pred";
+	  $concat_preds{$learner}->[@{$concat_preds{$learner}}] = $predfile;
+	}
+      }
+    }
+    $cmd = "cat " . join(" ",@concat_targets) . " > " . $expstem . ".alltargs";
+    runCmd($cmd);
+    foreach $learner (@learners) {
+      $learner =~ /([^ ]+)(.*)/; 
+      $lakey = $learner . $learner_suffixes[$lanr];
+      $cmd = "cat " . join(" ",@{$concat_preds{$learner}}) . " > " . $expstem . "_" . $lakey . ".allpreds";
+      runCmd($cmd);
+    }
+  }
+}
+
+sub calcStats {
+  my $maxfolds   = $_[0];
+  my $maxrepeats = $_[1];
+  my $tmpvalue = "";
+  # calculate overall stats from the individual results we have gathered
+  #if ($opt_pa) {
+    foreach $key ( sort keys %preproc_keys ) {
+      @tmp = ();
+      for ($rep=0;$rep<$maxrepeats;$rep++) {
+	for ($j=0;$j<$maxfolds;$j++) {
+	  $tmpvalue = $preproc_vals{"$rep,$j,$key"};
+	  push @tmp,$tmpvalue;
+	  printLOG("DEBUG preproc: $rep/$j/$key: $tmpvalue\n") if $debug;
+	}}
+      printLOG("DEBUG preproc tmp: ".join(",",@tmp)."\n") if $debug;
+      printLOG("DEBUG preproc testsizes: ".join(",",@testsizes)."\n") if $debug;
+      print RES "$key: ",&average(*tmp,*testsizes),"\n";
+      printLOG("$key: ".&average(*tmp,*testsizes)."\n");
+    }
+  #}
+  my $lanr = 0;
+  my $lakey;
+  foreach $learner ( @learners ) {
+    $lakey = $learner . $learner_suffixes[$lanr];
+    print RES "Status $lakey: ",$learner_status{"$lakey"},"\n";
+    foreach $key ( sort keys %learner_keys ) {
+      if ($learner_status{"$lakey"} eq "ok") {
+	# collect all the values
+	@tmp = ();
+	for ($rep=0;$rep<$maxrepeats;$rep++) {
+	for ($j=0;$j<$maxfolds;$j++) {
+	  $tmpvalue = $learner_vals{"$lakey,$rep,$j,$key"};
+	  printLOG("DEBUG learn: $rep/$j/$key: $tmpvalue\n") if $debug;
+	  push @tmp,$tmpvalue;
+	}}
+	printLOG("Values for $lakey/$key: ".join(",",@tmp)."\n") if $debug;
+	printLOG("Testsizes for $lakey/$key: ".join(",",@testsizes)."\n") if $debug;
+	print RES "$key $lakey: ",&average(*tmp,*testsizes),"\n";
+	printLOG("$key $lakey: ".&average(*tmp,*testsizes)."\n");
+      } else {
+	print RES "$key $lakey: ?\n";
+	printLOG("$key $lakey: ?\n");
+      }
+    }
+    $lanr++;
+  }
+}
+
+sub runLearners {
+  my $fold = $_[0];
+  my $repname = $_[1];
+  my $rep = $_[2];
+  my $laname; 
+  my $laparms;
+
+  # TODO:
+  # if specified, run PA
+  #  for each fold/rep we run preproc on train and 
+  #  create train and test according to preproc parms determined on train
+  # Problem: how to diferenciate between results for 
+  # with and w/o preprocessing???
+  # Use name again: _PAxxx
+
+  if ($opt_pa) {
+    printLOG("Running preprocessing algorithm $opt_pa\n");
+    printLOG("Copying $evalstem.names to ${evalstem}_${preproc_meth}.names\n");
+    copy("$evalstem.names", "${evalstem}_${preproc_meth}.names") || die "Copy failed: $!\n";
+    $cmd = "perl $metpath/run_$crpref"."pa_${preproc_meth} -istem $evalstem -ostem $evalstem";
+    $cmd .= "_" . "$preproc_meth -s $seed $opt_lad $opt_lav";
+    $cmd .= " -ao \"$preproc_args\"";
+    openPipe($cmd);
+    while(<IN>) {
+      printLOG($_);
+      if (/==== ([^:]+): (.+)/) {
+	$key = $1; $val = $2;
+	print RES "$key $rep $fold: $val\n";
+	$preproc_vals{"$rep,$fold,$key"} = $val;
+	$preproc_keys{"$key"} = 1;
+      }
+    }
+    close(IN);
+  }
+
+  # report training and test sample size for this fold to results file
+
+  my $thetrainsize = fileSize("$evalstem.data");
+  my $thetestsize = fileSize("$evalstem.test");
+
+  $preproc_vals{"$rep,$fold,DBSizeTrain"} = $thetrainsize;
+  $preproc_keys{"DBSizeTrain"} = 1;
+  $preproc_vals{"$rep,$fold,DBSizeTest"} = $thetestsize;
+  $preproc_keys{"DBSizeTest"} = 1;
+
+
+  print RES "DBSizeTrain $rep $fold: $thetrainsize\n";
+  print RES "DBSizeTest $rep $fold: $thetestsize\n";
+  
+  # if required, save the data file for later
+  if ($opt_savedata) {
+    printLOG("Copying $evalstem.test to $datasavefile\n");
+    copy("$evalstem.test", "$datasavefile") || die "Copy failed: $!\n";
+  }
+
+
+  my $lanr = 0;
+  foreach $learner ( @learners ) {
+    $learner =~ /([^ ]+)(.*)/; $laname  = $1; $laparms = $learner_args[$lanr];
+    $lakey = $learner . $learner_suffixes[$lanr];
+    if (($fold > 0) && ($learner_status{"$lakey"} ne "ok")) {
+      next;
+    }
+    printLOG("Running $lakey, iteration $fold\n");
+    $lrncall = "$metpath/run_$crpref"."la_" . $laname ;
+    #$predfile = $expstem . "_" . $repname . $fold . "_" . $laname . $opt_lasuf . ".pred";
+    $predfile = $expstem . "_" . $repname . $fold . "_" . $lakey . ".pred";
+    $modelfile = $expstem . "_" . $repname . $fold . "_" . $lakey . ".model";
+    
+    # good solution for a portable `touch $predfile`; ?
+    open(DUMMY,">>$predfile");
+    close(DUMMY);
+
+
+    $modelopt = "";
+    $modelopt = " -kmodel $modelfile " if ($opt_kmodel);
+
+    $cmd = "perl $lrncall -cpulimit $cpulimit -istem $evalstem";
+    $cmd .= "_" . $preproc_meth if $preproc_meth;
+    $cmd .= " -m $metpath -o $predfile -s $seed $opt_lak $opt_lav $opt_lad $laparms $modelopt" ;
+
+    openPipe($cmd);
+    #my $xxx = 0;
+    while(<IN>) {
+      #printLOG("$xxx: " . $_);
+      printLOG($_);
+      #$xxx++;
+      #print $_;
+      if (/: ERROR:/) {
+	if ($opt_x) {
+	  printLOG("Option -x given: exiting\n");
+	  exit(1);
+	}
+	if (/time limit exceeded/) {
+	  $learner_status{"$lakey"} = "timeout";
+	} else {
+	  $learner_status{"$lakey"} = "unknown";
+	}
+      }
+      if (/==== ([^:]+): (.*)$/) {
+	$key = $1;
+	$val = $2;
+	$learner_vals{"$lakey,$rep,$fold,$key"} = $val;
+	$learner_keys{"$key"} = 1;
+	print RES "$key $rep $fold $lakey: $val\n";
+      } elsif (/!!!! finished/) {
+	$learner_status{"$lakey"} = "ok";
+      }
+    }
+    close(IN) or contError("WARNING: Problem with pipe from $cmd: $!\n");
+    unless ($learner_status{"$lakey"} eq "ok") {
+      printLOG("WARNING: Fold not OK, no more folds for $lakey!\n");
+    }
+    $lanr++;
+  }
+  if ($opt_pa) {
+    rmFile("$evalstem\_$preproc_meth.names");
+    rmFile("$evalstem\_$preproc_meth.data");
+    rmFile("$evalstem\_$preproc_meth.test");
+  }
+}
+
+sub printLOG {
+  print LOG $_[0];
+  print $_[0] if $opt_v ;
+}
+
+# weighted average: the first N entries are the values, the next n the weights
+# the weights need not add up to one since we divide through (sum+sumwights)
+sub average {
+  local (*values) = $_[0];
+  local (*weights) = $_[1];
+  local $n = $#values;
+  local $sum = 0.0;
+  local $sumweights = 0.0;
+  local $i = 0;
+  local $ret = 0;
+  local $ok = 0;
+  if ($#values != $#weights) {
+    exitErr("ERROR: average for $#values values but $#weights weights?\n");
+  }
+  #printLOG ("Average for: $n, ".join(",",@values)."/".join(",",@weights)."\n");
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      $ok++;
+      #print "val: $values[$i], w: $weights[$i]\n";
+      $sum += $values[$i] * $weights[$i]; # add up value*weight
+      $sumweights += $weights[$i]; # add weights 
+    }
+  }
+  if ($sumweights == 0.0 || $ok == 0) {
+    $ret = '?';
+  } else {
+    $ret = $sum / $sumweights;
+  }
+  #print "sum: $sum, sumw: $sumweights, ret: $ret\n";
+  return $ret;
+}
+
+sub la_name {
+  local $script = $_[0];
+  $script =~ /run_?la_(.*)/;
+  return $1;
+}
+
+
+# to make the stem, the global variables $filestem and $seed will be used
+sub getPath {
+  my $arg1 = $_[0];
+  my $default  = $_[1];
+  my $path;
+  
+  if ($arg1 ne "") {
+    $path = $arg1;
+  } elsif ($default eq "") {
+    $path = ".";
+  } else {
+    $path = $default;
+  }
+  if ($path =~ /[^\/]$/) {
+    $path .= "/";
+  }
+  if (!(-d $path)) {
+    print STDERR "Path not found: >$path<\n";
+    exit(1);
+  }
+  
+  # we use a underscore instead of a dot because mlc++ wont work correctly
+  # with files of the format stem.1.data (tries to find stem.names instead
+  # of stem.1.names)
+  $stem = $path . $filestem . "_" . $seed;
+  
+  return ($path,$stem);
+}
+
+sub rmFile {
+  local $filename = $_[0];
+  unless ($opt_k) {
+    printLOG ("Deleting: $filename\n");
+    if (0 == (unlink glob("$filename"))) {
+      printLOG "Warning: Couldn't unlink >$filename< - $!?\n";
+    }
+  } else {
+    printLOG ("Keeping (option -k or -d): $filename\n");
+  }
+}
+
+sub contError {
+  my $msg = $_[0];
+  printLOG($msg);
+  if ($opt_x) {
+    printLOG("Option -x given, exiting\n");
+    exit(1);
+  }
+}
+
+### runSys will start the given command/program but doesnt care about
+### the output 
+sub runSys {
+  my $cmd = $_[0];
+  my $ret;
+  printLOG("Running: $cmd\n");
+  $ret = system($_[0]) / 256;
+  printLOG("Returned: $ret\n") if $debug;
+  exitErr("Could not fork($ret) $cmd: $!\n") if ($ret != 0);
+}
+
+### runCmd will run the given command and return its output
+### after removing any trailing newline character
+sub runCmd {
+  my $cmd = $_[0];
+  printLOG("Running: $cmd\n");
+  my $ret = `$cmd`;
+  chomp($ret);
+  printLOG("Returned: $ret\n") if $debug;
+  return $ret;
+}
+
+
+sub exitErr {
+  my $msg = $_[0];
+  print STDERR $msg;
+  printLOG $msg;
+  exit 1;
+}
+
+sub setupOS {
+  my $os = $^O;
+  printLOG("Setting up for OS $os\n") if $debug;
+  if ($os =~ /win32/i || $os =~ /cygwin/i) {
+    $nullfile = "/dev/null";
+    $pwdcmd = "pwd";
+    $ostype = "windows";
+  } elsif ($os eq "solaris") {
+    $nullfile = "/dev/null";
+    $pwdcmd = "pwd";
+    $ostype = "unix";
+  } else {
+    printLOG("WARNING: unknown OS $os, assuming UNIX-like\n");
+    $nullfile = "/dev/null";
+    $pwdcmd = "pwd";
+    $ostype = "unix";
+  }
+}
+
+sub openPipe {
+  printLOG("Command: $_[0]\n");
+  if ($ostype eq "windows") {
+    open(IN, "$_[0] |") or contError("WARNING: Could not create pipe: $!\n");
+  } else {
+    open3(DUMMY,IN,IN,$_[0]) or contError("WARNING: Could not create pipe: $!\n");
+  }
+}
+sub fileSize {
+  my $file = $_[0];
+  my $count = 0;
+  if ($ostype eq "unix") {
+    $count = runCmd("wc -l < $file");
+    $count =~ s/ //g;
+    return $count;
+  } else {
+    open(TMP1, "< $file") or exitErr("Could not open $file for counting: $!\n");
+    $count++ while  <TMP1>;
+    close(TMP1);
+    return $count;
+  }
+}
+sub md5key {
+  my $file = $_[0];
+  $MD5BIN = $MD5BIN . "/" unless($MD5BIN eq "");
+  my $key = runCmd("$MD5BIN" . "md5sum $file");
+  chomp($key);
+  return $key;
+}
+
+
+sub makeName {
+  my $name = $_[0];
+  $name =~ s/\s/_/g;
+}
+
+
+
+
+

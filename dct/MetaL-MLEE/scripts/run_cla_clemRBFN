@@ -1,0 +1,101 @@
+#!/usr/local/bin/perl
+
+# run_cla_clemRBFN
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_clemRBFN,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# NOTES
+# resubstitution error on training set not implemented
+# still relies on buggy Clementine (no way to define names of
+#   output fiels for predictions and analysis)
+# non-portable conversion of output to prediction file
+
+# CHANGES
+# 2000/11/27 2.2: trick to detect timeout in training phase added
+#    (timeouts after ulimit command are not detected with 
+#    run_clem probably since there is a deeper nesting of scripts)
+# 2000/07/10 2.1: extract size instead of using constant of 20
+# 2000/07/01 2.0: redesign for new library version
+# 1999/11/12 1.2: add option -vl to calls of run_clem to include
+#    Clementine log file to output
+#    Added flag variable $verbose to indicate that we just want
+#    the output of run_clem, but not all the debug info.
+#    Together with -vl, this will cause the Clementine log
+#    to be written
+
+
+use vars qw($pgmname $pgmpath $trainargs $args $debug
+	    $testargs $predfile $filestem
+	   $methodpath);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("clemRBFN",$pgmversion); 
+use File::Basename;
+
+# we use the directory where the files are stored as the directory 
+# where clementine output should go (except that output that
+# cannot be specified where to go because fo CLementine's bug, these
+# go into the current directory)
+my $filedir = dirname($filestem);
+my $stem = basename($filestem);
+
+startCMD("$methodpath/run_clem  -vl -train -f $filestem -m $methodpath/rbfn.str -d $filedir $args $trainargs");
+while (defined($_=getLine())) {
+  printMsg($_) unless $debug;  # avoid duplicate printing within getLine
+}
+$k{"Traintime"} = stopCMD();
+
+# we dont parse here, since RBFNs wont adapt the number of BFs themself
+# so we just use the constant we have defined in rbfn.str
+
+# Melanie pointed out to me that that is not correct: contrary to
+# documentation, the number of units gets changed sometimes ....
+### $k{"Size"} = 20;
+ # parse generated model file to find model size: number of hidden units
+unless (open(IN,"<$filedir/$stem.rbfn.class.out.node")) {
+  printMsg("Cannot open generated model file $filedir/$stem.rbfn.class.out.node: $!\n");
+  if ($opt_cpulimit && ($k{"Traintime"} > $opt_cpulimit)) {
+    my $traintime = $k{"Traintime"};
+    printMsg("Traintime $traintime bigger than limit: $opt_cpulimit, assuming timout\n");
+    exitErr("time limit exceeded! ($opt_cpulimit sec CPU)\n");
+  }
+}
+while(<IN>) {
+  if (/neural_net RBF/) {
+    $_ = <IN>;
+    /([0-9]+)/;
+    $size = $1;
+    last;
+  }
+}
+close(IN);
+$k{"Size"} = $size;
+
+startCMD("$methodpath/run_clem  -vl -test -f $filestem -m $methodpath/rbfn.str -d $filedir $args $testargs");
+while (defined($_=getLine())) {
+  if (/^Error rate:\s+([0-9\.]+)/) {
+    $k{"Error"} = $1 / 100.0;
+  }
+  printMsg($_) unless $debug; 
+}
+$k{"Testtime"} = stopCMD();
+
+# convert table.tab to the format we want for predictions
+# we just remove all blanks .... 
+# !!!!! NOT PORTABLE !!!!
+`tail +3 table.tab |  sed -e 's/ //g' > $predfile`;
+
+
+rmFile("analysis.txt");
+rmFile("table.tab");
+
+endLA();

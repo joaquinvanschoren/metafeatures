@@ -1,0 +1,52 @@
+#!/usr/local/bin/perl
+
+# run_cma_mlcnb
+# by Johann Petrak (OeFAI)
+#
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cma_mlcnb,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $trainargs $args $debug
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+use File::Copy;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginMA("mlcnb",$pgmversion); 
+
+my $stem = basename($filestem);
+my $tmpstem = "$opt_tmppath$stem";
+copy("$filestem.names", "$tmpstem.names");
+copy("$filestem.data", "$tmpstem.data");
+symlink("$filestem.data", "$tmpstem.test");
+
+startCMD("$la -train $tmpstem $tmpstem.$la.model $args $trainargs");
+while (defined($_=getLine())) {
+  if (/Model Complexity : ([0-9]+)/) {
+    $k{"MA_mlcnb_Size"} = $1;
+  }
+}
+$k{"MA_mlcnb_Traintime"} = stopCMD();
+
+startCMD("$la -test $tmpstem $tmpstem.$la.model $tmpstem.pred $args $testargs");
+while (defined($_=getLine())) {
+  if (/^Error:\s+([0-9\.]+)/) {
+    $k{"MA_mlcnb_Error"} = $1 / 100.0;
+  }
+}
+$k{"MA_mlcnb_Testtime"} = stopCMD();
+
+rmFile("$tmpstem.$la.model");
+rmFile("$tmpstem.pred");
+rmFile("$tmpstem.names");
+rmFile("$tmpstem.test");
+rmFile("$tmpstem.data");
+
+endMA();

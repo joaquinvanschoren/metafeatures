@@ -1,0 +1,38 @@
+#!/usr/local/bin/perl
+
+# run_cpa_fselQ1
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cpa_fselQ1,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $args $trainargs $debug %k
+	    $time $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginPA("fselQ1",$pgmversion); 
+$debug = 1; # we always want verbose mode here 
+
+@attrs = ();
+startCMD("$pgmpath/fselQ1 -f $opt_istem -v");
+while (defined($_=getLine())) {
+  if (/==== Attr\s+([0-9]+)/) {
+    push @attrs,$1;
+  }
+}
+$attrs = join(",",@attrs);
+print "Selecting attributes $attrs\n";
+
+addCMD("perl $pgmpath/project $opt_istem $opt_ostem $attrs");
+while (defined($_=getLine())) {
+}
+$k{"PAtime_fselQ1"} = stopCMD();
+
+endPA();

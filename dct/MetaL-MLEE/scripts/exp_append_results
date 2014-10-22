@@ -1,0 +1,69 @@
+#!/bin/csh -f 
+
+set version='$Revision: 3.0.2.1 $'
+set versiondate='$Date: 2002/08/21 16:45:43 $'
+set rcsid='$Id: exp_append_results,v 3.0.2.1 2002/08/21 16:45:43 johann Exp $'
+
+# unsupported/alpha: collect results from several dirs into final
+# $1 must be a directory with one subdir for each filestem
+# (each subdir may only contain results for one filestem/experiment)
+# $2 must be a directory that is empty or already contains
+# one subdir for each filestem
+
+set src=$1
+
+if ("x$src" == "x") then
+  echo usage: $0 fromdir todir
+  exit
+endif
+
+if ("$src" == "-h") then
+  echo usage: $0 fromdir todir
+  echo Version: $version $versiondate
+  exit
+endif
+
+set dest=$2
+if ("x$dest" == "x") then
+  echo usage: $0 fromdir todir
+  exit
+endif
+
+#set debug
+#set echo
+
+
+
+set curdir=`pwd`
+echo step 1: copying files ....
+foreach subdir ( $src/* )
+  set stem=$subdir:t
+  if ( -d $subdir) then
+    echo processing $stem subdir $stem
+    if ( -d $dest/$stem ) then 
+    else
+      mkdir $dest/$stem
+    endif
+    echo cp preds in $subdir to $dest/$stem
+    /bin/cp $subdir/*.pred $dest/$stem
+    echo cp targets in $subdir to $dest/$stem
+    /bin/cp $subdir/*.targets $dest/$stem
+    echo cp dct in $subdir to $dest/$stem
+    /bin/cp $subdir/*.dct $dest/$stem
+    echo cp model in $subdir to $dest/$stem
+    /bin/cp $subdir/*.model $dest/$stem
+    set tmp=`ls $subdir/${stem}*.log`
+    foreach mystem ( $tmp )
+      set tmpstem=$mystem:r
+      set tmpstem=$tmpstem:t
+      echo append $subdir/${tmpstem}.log to $dest/$stem/${tmpstem}.log
+      cat $subdir/${tmpstem}.log >>! $dest/$stem/${tmpstem}.log
+      echo append $subdir/${tmpstem}.results to $dest/$stem/${tmpstem}.results
+      cat $subdir/${tmpstem}.results >>! $dest/$stem/${tmpstem}.results
+    end
+  else
+    echo ignoring file $stem
+  endif
+end
+
+cd $curdir

@@ -1,0 +1,394 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Structure and Organization of Output Data</TITLE>
+<META NAME="description" CONTENT="Structure and Organization of Output Data">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node10.html">
+<LINK REL="previous" HREF="node8.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node10.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html244"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html240"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html234"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html242"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html245"
+  HREF="node10.html">Solutions to frequent problems</A>
+<B> Up:</B> <A NAME="tex2html241"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html235"
+  HREF="node8.html">Running Experiments</A>
+ &nbsp <B>  <A NAME="tex2html243"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html246"
+  HREF="node9.html#SECTION00091000000000000000">The log file</A>
+<LI><A NAME="tex2html247"
+  HREF="node9.html#SECTION00092000000000000000">The <TT>results</TT> file</A>
+<LI><A NAME="tex2html248"
+  HREF="node9.html#SECTION00093000000000000000">The <TT>.stats</TT> file</A>
+<LI><A NAME="tex2html249"
+  HREF="node9.html#SECTION00094000000000000000">The <TT>.dct</TT> file</A>
+<LI><A NAME="tex2html250"
+  HREF="node9.html#SECTION00095000000000000000">The targets files</A>
+<LI><A NAME="tex2html251"
+  HREF="node9.html#SECTION00096000000000000000">The prediction files</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION00090000000000000000"></A>
+<A NAME="output"></A>
+<BR>
+Structure and Organization of Output Data
+</H1>
+
+<H2><A NAME="SECTION00091000000000000000">
+The log file</A>
+</H2>
+
+<P>
+For each experiment a log file with the name <TT>filename_seed.log</TT>
+is created. The log file contains the log of what <TT>run_exp</TT> 
+has been doing. If <TT>run_exp</TT> is invoked several times for
+the same filestem and seed in the same output directory, each 
+new log will be added to the end of any existing one, unless
+the option <TT>-o</TT> (overwrite) has been given to the 
+<TT>run_exp</TT> command. The log will contain more information
+from the <TT>run_exp</TT> command if the <TT>-d</TT> (debug) option 
+was given and will also include debuggin information from the 
+interface scripts called if the option <TT>-lad</TT> was given.
+
+<P>
+
+<H2><A NAME="SECTION00092000000000000000">
+The <TT>results</TT> file</A>
+</H2>
+
+<P>
+The <code>:results</code> file contains  a group of variables that
+describe the experiment and database, and another group of varibales
+that contain information for each combination of algorithm, fold, and
+repetition. 
+
+<P>
+
+<UL>
+<LI><code>File</code>: The full path and filestem to the database processed.
+</LI>
+<LI><code>Filestem</code>: The filestem without any path as used in the output
+  files. If a suffix is added to the output file names (e.g. when
+  a preprocessing algorithm is used), that suffix will be included here.
+  In other words, this is the part of the filestem that will be used
+  in the output files before the <code>_&lt;seed&gt;</code> part.
+</LI>
+<LI><code>InFilestem</code>: The filestem without any path as specified
+  for the <code>-f</code> command line option of <code>run_exp</code>. This will 
+  never contain any suffixes.
+</LI>
+<LI><code>ModelType</code>: Either <code>classification</code> or <code>regression</code>
+</LI>
+<LI><code>Start</code>: The start date and time of the experiment, in standard UNIX date format.
+</LI>
+<LI><code>User</code>: The login name of the user running the experiment
+</LI>
+<LI><code>Host</code>: The (short) hostname of the machine on which the 
+experiment was run.
+</LI>
+<LI><code>OS</code>: The (short) name of the operating system.
+</LI>
+<LI><code>System</code>: More detailled information about the operating 
+system, version and architecture.
+</LI>
+<LI><code>CPUlimit</code>: The CPU time limit specified for this experiment; the
+value 0 means no limit.
+</LI>
+<LI><code>Seed</code>: The random seed used for the randomization of the
+crossvalidation folds.
+</LI>
+<LI><code>Version run_exp</code>: The program version of <code>run_exp</code> 
+</LI>
+<LI><code>Samplespec: n/n</code>: The values given (or the default values) for 
+the <TT>-samp</TT> and <TT>-hsamp</TT> options of <code>run_exp</code>.
+</LI>
+<LI><code>Preprocessing</code>: The name of the preprocessing algorithm, or empty
+</LI>
+<LI><code>DBSize</code>: The number of records in the <TT>.data</TT> file of the 
+input database.
+</LI>
+<LI><code>DBdataMD5</code>: The MD5 key of the <TT>.data</TT> file.
+This can be used to check if exactly the same file has been used for
+different experiments.
+</LI>
+<LI><code>DBnameMD5</code>: The MD5 key of the <TT>.names</TT> file.
+</LI>
+<LI><code>Type_data</code>=, <code>N_continuous_attr</code>, <code>N_discrete_attr</code>,
+<code>N_total_discrete_vals</code>, <code>Avg_discrete_vals</code>, <code>Log_discrete_combinations</code>, <code>Avg_discrete_combinations</code>, <code>N_classes</code>: These values 
+are the output of the <TT>parse_names</TT> program and are explained
+in Section&nbsp;<A HREF="node6.html#parsenames">5.7.1</A>.
+</LI>
+<LI><code>Learner</code>: For each learning algorithm there is one line with
+this key, giving the name of the learning algorithm.
+</LI>
+<LI><code>Learner_Parameters &lt;learner&gt;</code>: for each learner a line
+giving all the parameters as specified on the <code>run_exp</code> command line.
+</LI>
+<LI><code>DCT_Totaltime</code>: The total CPU time measured for the DCT algorithm,
+if it was run.
+</LI>
+<LI><code>Evalmethod</code>: The evaluation method used - one of 
+<TT>xval</TT>, <TT>holdout</TT>, <TT>cstho</TT>, or <TT>loov</TT>.
+</LI>
+<LI><code>Evalparms</code>: The parameters used for the method, separated
+by commas. In addition, for each method, there is a special set of 
+keywords that individually give the values for the evaluation parameters,
+e.g. for <TT>xval</TT>: <code>XVAL_folds</code> and <code>XVAL_repeat</code>.
+</LI>
+<LI><code>DBSizeTrain &lt;r&gt; &lt;f&gt;</code>: The actual size of the training data
+for repetition <code>&lt;r&gt;</code> and fold <code>&lt;f&gt;</code>.
+</LI>
+<LI><code>DBSizeTest &lt;r&gt; &lt;f&gt;</code>: The actual test size per repetition/fold.
+</LI>
+<LI><code>Error &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The holdout error (error of the
+learned model on the test set) for algorithm <code>&lt;alg&gt;</code> 
+for that repeition/fold. This is the error as reported from the interface
+script, not as measured by the <code>run_stats</code> script from the target/predictions files.
+</LI>
+<LI><code>Resubsterror &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The resubstitition error (error
+of the model on the training set), if reported by the interface script.
+</LI>
+<LI><code>Size &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The model size, ifand as
+ reported by the interface
+script. 
+</LI>
+<LI><code>Testtime &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The time needed for the testing step
+in CPU seconds, as reported by the interface script.
+</LI>
+<LI><code>Traintime &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The time needed for the training step
+in CPU seconds, as reported by the interface script.
+</LI>
+<LI><code>Totaltime &lt;r&gt; &lt;f&gt; &lt;alg&gt;</code>: The time needed for both the training
+and testing step, 
+in CPU seconds, as reported by the interface script. For some learning 
+algorithms it might not possible easily to get individual training and 
+testing times since they carry out both steps in one program run. For
+this only the <code>Totaltime</code> value will be different from the missing
+value indicator.
+</LI>
+<LI><code>Status &lt;alg&gt;</code>: The final status of the experiment for this
+algorithm. This is estimated from the output of the interface scripts.
+Either <TT>ok</TT> if everything worked well, <TT>timeout</TT> if 
+the CPU time limit was ???, <TT>unknown</TT> if the status could not 
+be determined, and <TT>nok</TT> if something went wrong (e.g. the algorithm
+crashed).
+</LI>
+<LI><code>Error &lt;alg&gt;</code>: The final average error as calculated 
+from the individuals error reported by the interface script.
+</LI>
+<LI><code>Resubsterror &lt;alg&gt;</code>: The final average Resubstitution error.
+</LI>
+<LI><code>Size &lt;alg&gt;</code>: The final average model size.
+</LI>
+<LI><code>Testtime &lt;alg&gt;</code>: The final average testing time.
+</LI>
+<LI><code>Traintime &lt;alg&gt;</code>: The final average training time.
+</LI>
+<LI><code>Totaltime &lt;alg&gt;</code>: The final average total time.
+</LI>
+<LI><code>Stop</code>: The date and time when the experiment was finished, 
+in standard UNIX date format.
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00093000000000000000">
+The <TT>.stats</TT> file</A>
+</H2>
+
+<P>
+The stats file contains all the measures that get calculated from
+the <TT>.pred</TT> and <TT>.targets</TT> files by the <code>run_stats</code>
+program (the <code>run_stats</code> program gets called automatically
+at the end of <code>run_exp</code> unless explicitly supressed).
+
+<P>
+The variables in the <code>.stats</code> file 
+for classification-type experiments:
+
+<P>
+
+<UL>
+<LI><code>Error &lt;alg&gt; &lt;rep&gt; &lt;fold&gt;</code>: The error of the model learned by
+algorithm <code>&lt;alg&gt;</code> from 
+the training set and evaluated on the testset 
+for repition <code>&lt;rep&gt;</code> and fold <code>&lt;fold&gt;</code>.
+</LI>
+<LI><code>Error &lt;alg&gt;</code>: The error averaged over all classifications
+from all folds and repitions. Note that this will be different from the
+average of the fold/repitions Errors above, if fold sizes are not
+the same for all folds.
+</LI>
+<LI><code>StdDevOfError &lt;alg&gt;</code>: The standard deviation of the errors
+for all folds/repitions.
+</LI>
+<LI><code>StdErrOfError &lt;alg&gt;</code>: The standard error of the errors for 
+all folds/repitions (i.e. the standard deviation divided by the squareroot
+of the number of errors)
+</LI>
+<LI><code>Correct-Wrong &lt;alg1&gt; &lt;alg2&gt;</code>: The number of cases where
+  the classification was correct for algorithm <code>&lt;alg1&gt;</code> and wrong
+  for algorithm <code>&lt;alg2&gt;</code>.
+</LI>
+<LI><code>Wrong-Correct &lt;alg1&gt; &lt;alg2&gt;</code>: The number of cases where
+  the classification was wrong for algorithm <code>&lt;alg1&gt;</code> and correct
+  for algorithm <code>&lt;alg2&gt;</code>.
+</LI>
+<LI><code>pvalMcNemar &lt;alg1&gt; &lt;alg2&gt;</code>: The p-value of the McNemar
+test for identical distributions of wrong/correct and correct/wrong
+counts.
+</LI>
+<LI><code>pvalPairedTTest &lt;alg1&gt; &lt;alg2&gt;</code>: The p-value of a 
+paired t-test for the errors.
+</LI>
+<LI><code>p-val_McNemar &lt;alg1&gt; &lt;alg2&gt;</code>: OBSOLETE and only kept for 
+backward compatibility!
+</LI>
+</UL>
+<P>
+The variables in the <code>.stats</code> file 
+for regression-type experiments:
+
+<P>
+
+<UL>
+<LI><code>ErrorSSE</code>: Sum of squared errors
+</LI>
+<LI><code>ErrorMSE</code>: Mean squared error
+</LI>
+<LI><code>ErrorRMSE</code>: Root mean squared error
+</LI>
+<LI><code>ErrorNMSE</code>: Normalized mean squared error
+</LI>
+<LI><code>ErrorMAD</code>: Mean absolute differences
+</LI>
+<LI><code>ErrorNMAD</code>: Normalized mean absolute deviation
+</LI>
+<LI><code>RSquare</code>: correlation coefficient between targets and predictions
+</LI>
+<LI><code>p-MeanDiffZero &lt;alg1&gt; &lt;alg2&gt;</code>: p value for the test for equal means
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00094000000000000000">
+The <TT>.dct</TT> file</A>
+</H2>
+
+<P>
+The DCT program and its output are documented in [<A
+ HREF="node12.html#dct">DCT doc</A>].
+
+<P>
+
+<H2><A NAME="SECTION00095000000000000000">
+The targets files</A>
+</H2>
+
+<P>
+For each fold of the crossvalidation, a file containing only
+the targets of the test file for this fold gets stored 
+in the results directory. The name of this file
+is of the form <code>&lt;filestem&gt;_&lt;seed&gt;_&lt;fold&gt;.targets</code>.
+
+<P>
+These files are necessary for the <code>run_stats</code> program
+to calculate error estimates and similar measures.
+
+<H2><A NAME="SECTION00096000000000000000">
+The prediction files</A>
+</H2>
+
+<P>
+For each combination of learning algorithm and fold of the crossvalidation,
+a file containing only
+the predictions of this learning algorithm for the test file gets stored 
+in the results directory. The name of this file
+is of the form <code>&lt;filestem&gt;_&lt;seed&gt;_&lt;fold&gt;_&lt;alg&gt;.pred</code>.
+
+<P>
+These files are necessary for the <code>run_stats</code> program
+to calculate error estimates and similar measures.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html244"
+  HREF="node10.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html240"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html234"
+  HREF="node8.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html242"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html245"
+  HREF="node10.html">Solutions to frequent problems</A>
+<B> Up:</B> <A NAME="tex2html241"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html235"
+  HREF="node8.html">Running Experiments</A>
+ &nbsp <B>  <A NAME="tex2html243"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

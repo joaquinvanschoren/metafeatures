@@ -1,0 +1,285 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Standard Database Format</TITLE>
+<META NAME="description" CONTENT="Standard Database Format">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node6.html">
+<LINK REL="previous" HREF="node4.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node6.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html170"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html166"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html160"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html168"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html171"
+  HREF="node6.html">The Programs</A>
+<B> Up:</B> <A NAME="tex2html167"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html161"
+  HREF="node4.html">What METAL-MLEE Does</A>
+ &nbsp <B>  <A NAME="tex2html169"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html172"
+  HREF="node5.html#SECTION00051000000000000000">Names File</A>
+<LI><A NAME="tex2html173"
+  HREF="node5.html#SECTION00052000000000000000">Data File</A>
+<LI><A NAME="tex2html174"
+  HREF="node5.html#SECTION00053000000000000000">Formal Format Description</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION00050000000000000000"></A>
+<A NAME="dbformat"></A>
+<BR>
+Standard Database Format
+</H1>
+In order to be usable with <I>METAL-MLEE</I>, databases must
+be in a standard format. This format is similar to the formats
+used by the <I>C4.5</I> [<A
+ HREF="node12.html#Quinlan:1993">Quinlan 1993</A>] and 
+<I>C5.0</I> machine learning
+algorithms, but with additional constraints. 
+If your database does not conform to the format
+explained below in more detail, it needs to be 
+converted. 
+
+<P>
+For each database, two files are required: one file, the
+<I>data</I>-file that contains
+the actual data in ASCII-coded, comma-separated variables (CSV)
+format, and another 
+file, the <I>names</I>-file that contains the names
+ and types of the variables in the 
+data file. A convention that must be observed for use with
+<I>METAL-MLEE</I> is that both files must have the same 
+name and be located in the same path, but differ
+in their file name <I>extension</I>: the data file
+has the extension <TT>.data</TT> while the names file
+has the extension <TT>.names</TT>. The part of the filename
+without the extension that is necessary to uniquely identify
+a specific pair of files for a database is called
+<I>filestem</I>.
+
+<P>
+Hence, a database for use with <I>METAL-MLEE</I> always consists
+of two files, the names and data files, and can be specified
+by the part of the name that is common to both files, the
+filestem.
+
+<P>
+<I>METAL-MLEE</I> can handle both regression and classficiation
+problems, i.e. both numeric and discrete target variables.
+In both cases, the target variable has to be the last variable
+in the comma-separated list of fields that make up the individual
+records in the data file.
+
+<P>
+The restrictions on the format of the database have been imposed to
+be able to use as many learning algorithms as possible without
+having to perform costly database format conversions. Note that 
+depending on which learning algorithms you use and how the 
+interface scripts that plug these learning algorithms into 
+<I>METAL-MLEE</I> are written, it might be possible to use a format
+that does not obey all of the constraints given below. For
+example,
+the limitation that the labels used for classes may not be
+used for discrete attributes has been introduced to make it
+easier to support the <TT>ripper</TT> rule learning algorithm.
+If you do not use this algorithm or if you enhance the interface
+script for this algorithm, that constraint on the databases need
+not be enforced any longer.
+
+<P>
+
+<H2><A NAME="SECTION00051000000000000000">
+Names File</A>
+</H2>
+
+<P>
+The names file describes the name and types of the fields, 
+or <I>attributes</I>, 
+in the data file. The format of the names file differs slightly
+if the target variable is continuous (i.e. the database 
+is used for a regresion problem) or discrete (the database 
+is used for a classification problem):
+
+<P>
+
+<UL>
+<LI>The first line for a classification database contains a comma
+separated list of possible class labels and is terminated by a dot. 
+Each class label must be a valid atom (see below for the definition) 
+that does not occur as a value of any of the other discrete attributes.
+</LI>
+<LI>The first line for a regression database contains the
+name of the last attribute defined in the names file, followed by a dot.
+</LI>
+<LI>All other lines contain attribute descriptions, in order
+of appearance of the corresponding fields in the data file.
+</LI>
+<LI>An attribute description consists of an attribute name that starts 
+in column&nbsp;1, followed by a colon and a blank, followed by either the
+word  "continuous" for real-valued attributes or a comma separated
+list of values for a discrete-valued attribute. Discrete values 
+must be atoms and cannot be integers. 
+</LI>
+<LI>All attribute descriptions must be terminated by a dot.
+</LI>
+<LI>Names must be atoms.
+</LI>
+<LI>For classification databases, the values for discrete
+attributes may not include values that are used as class labels.
+</LI>
+<LI>The names file contains nothing else. More specifically, it must
+not contain any comments as allowed for <TT>C5.0</TT> nor any blank
+lines.
+</LI>
+<LI>The missing value indicator is not part of the value list
+or otherwise listed in the attribute description.
+</LI>
+</UL>
+
+<P>
+An <I>atom</I> is a string of characters that does not contain
+blanks, other whitespace, special characters or accented characters
+and has a maximum length of 32 characters. The string can contain 
+numeric digits, but must  start with an alphabetical character.
+
+<P>
+
+<H2><A NAME="SECTION00052000000000000000">
+Data File</A>
+</H2>
+
+<P>
+The data file contains one new-line terminated record for each case
+in the database. Each record is a comma separated list of either 
+numeric values, atoms, or the missing value indicator.
+
+<P>
+
+<UL>
+<LI>Every atom that occurs in a field must be mentioned in the
+corresponding attribute description in the names file.
+</LI>
+<LI>Numeric values must be represented in a way that can be
+read in with the C <TT>scanf</TT> function using the ``%g'' directive.
+</LI>
+<LI>The missing value indicator for both numeric and discrete 
+fields is an unquoted question mark.
+</LI>
+<LI>The atoms used for discrete fields must not be quoted.
+</LI>
+<LI>Data records must not be terminated by a dot.
+</LI>
+</UL>
+
+<P>
+
+<H2><A NAME="SECTION00053000000000000000">
+Formal Format Description</A>
+</H2>
+
+<P>
+Here is a definition of the file formats,
+in a meta-language similar to Backus-Naur with
+Perl-like regular expressions. NUMVALUE is not
+defined - it should be a string that can be 
+parsed to a numeric value by the C <TT>scanf</TT> 
+function and format directive ``%g''. 
+
+<P>
+<PRE>
+atom := [a-z][a-z0-9]{0,29}
+
+namesfile := targetline NEWLINE (attrdefline){1,N}
+targetline := attrname DOT | labellist DOT
+attrname := atom
+labellist := atom [COMMA atom]*
+attrdefline := (attrname COLON SPC labellist) |
+               (attrname COLON SPC 'continuous') DOT 
+DOT := '.'
+COLON := ':'
+COMMA := ','
+SPC := ' '
+datafile := (valuelist NEWLINE ){1,N}
+valuelist := value COMMA value [COMMA value]*
+value := (atom | NUMVALUE)
+</PRE>
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html170"
+  HREF="node6.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html166"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html160"
+  HREF="node4.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html168"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html171"
+  HREF="node6.html">The Programs</A>
+<B> Up:</B> <A NAME="tex2html167"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html161"
+  HREF="node4.html">What METAL-MLEE Does</A>
+ &nbsp <B>  <A NAME="tex2html169"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

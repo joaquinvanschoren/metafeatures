@@ -1,0 +1,1310 @@
+#!/usr/local/bin/perl 
+
+$version = '$Revision: 3.0.2.3 $';
+$date    = '$Date: 2002/10/17 22:04:13 $';
+$rcsid   = '$Id: parse_results,v 3.0.2.3 2002/10/17 22:04:13 johann Exp $';
+
+# parse_results
+# =============
+#
+# Parse and process DCT, results, stats output files
+# 
+# Author: Johann Petrak (OeFAI)
+#
+
+# TODO: There STILL! seems to be a bug where a zero value gets
+#   inserted as "?" in the output! CHECK!
+# TODO: supress warning messages about multiple occurrence of field
+#   if all values are equal
+
+# NOTE:
+#  quicker interpolated matches: /$xxxx/o
+
+# CHANGES:
+#   2001.12.18.3.2: more intelligent assignment of field
+#      names for the -fn option
+#   2001.12.18 3.1: process GSI files instead of DCT
+#      files, use "gsi." instead of "dct." in field names
+#      The new option -usedct can be used to process .dct files
+#      instead of .gsi files, but field names still have to
+#      use the "gsi." prefix
+#   2001.12.17 3.0: add option -fn to include fieldnames in the
+#      first line of output as required by many statistics programs
+#   2001.03.02 2.9: bug correction: there were still cases where
+#      values equal to 0 were returned as missing values when
+#      breakup is "ds", corrected that.
+#   2001.01.09 2.8: added -mnp flag to give a indicator for
+#      non-present measurements. The default is to use the same
+#      value as for the missingvalue (-m or default '?').
+#      Note that the missing value (-m) indicator is still used for
+#      values that could not be calculated correctly (e.g. 
+#      the mean of several fields. So if the mean got calculated
+#      from missing fields, the returned value will be a missing
+#      value indicator, not a non-present indicator.
+#   2001.01.03 2.7: bug correction: the parsing of the stats file
+#      was not adapted to the current stats file format, so
+#      fold numbers got incorrectly parsed as learning algorithm names
+#   2001.01.02 2.6: correction: use list of las from the results
+#      file, if -ignorestats is given otherwise use list from
+#      stats file. Note that stats and results files might have
+#      different sets of la's ... NOTE: maybe we should take
+#      union?
+#      Also, correct: normalization for missing value indicator
+#      returns missing value indicator instead of zero;
+#   2000.09.19 2.5: bug correction - in certain constellations,
+#      values equal 0 always got replaced by a missing value indicator
+#      (e.g. errors equal 0)
+#   2000.07.19 2.4: new option -strip: remove strange characters from
+#      names and labels
+#   2000.07.17 2.3: globbing added to make this word under Win32.
+#      better way of detecting numeric/discrete fields for 
+#      creation of names file. Corrected bug in usage display
+#      showed specified fields instead of default)
+#   2000.07.13 2.2: improved method of creating c4.5 format data/names 
+#      files for the metadata: now discrete attributes should 
+#      be defined with those values that occur in the data file
+#   2000.07.12 2.1: now the key for results or stats can include
+#      a modifier, f.i.: "stats.Error c50tree".
+#      This allows e.g. to have individual measures for
+#      different learning algorithms to be in one row
+#   2000.07.05 2.0.1a bug correction: AVG was calculated incorrectly!
+#   2000.05.17 2.0a: make it work with new results file format
+#      (fold/repetition measures included). until now, we just
+#      ignore these things. Fold-specific measures must be
+#      extracted from stats file (doesnt work for timings of course, 
+#      oh well)
+#   2000.03.17 1.7.2: Hmmm that perl bug maybe wasn't really one:
+#      In order to clear the array of references, the correct thing
+#      to do seems to be 
+#        $values[$i] = [];
+#      instead of
+#        @{$values[$i]} = ();
+#      The workaround in 1.7.1 introduced a new strage problem
+#      that was maybe due to freeing the lexically scoped variable
+#      to which a reference was stored in the array (dunno for sure)
+#   2000.03.16 1.7.1: Changed code to counter a probable perl
+#      bug: when pushing a value into @{$values[0]}, in rare
+#      cases it magically appears in @{$values[4]}. All entries
+#      in $values were previously cleared by 
+#      $#{$values[$i]} = -1;
+#      When doing it by reading out the entry into a temporary
+#      array, pushing into the temporary array and then 
+#      assigning back to the entry, everything seems to work
+#      fine ....
+#   2000.03.16 1.7: Added processing of foldspecific measures in 
+#      the stats file and new breakup option 'foldsla'
+#   2000.01.02 1.6: Corrected a bug: storing wrong daga when
+#      reading from host normalization file.
+#   1999.12.13 1.5: New breakup option 'ds', options to ignore
+#     dct/results/stats files
+#   1999.11.30 1.4: Changed format of host normalization file to
+#     now also contain the algorithm name. Normalization is done for
+#     each algorithm seperately.
+#     Also added support for fields results.Start and results.Host
+#   1999.11.22 1.3: Show usage info if no files given
+#   1999.11.19 1.2: breakup=lapairs implemented
+#   1999.11.18 1.1: corrected bug in code for calculation of function MAX
+#   1999.11.18 1.0: initial version
+
+# uncomment for more perl-parsing messages:
+#use diagnostics -verbose;
+
+# set to 1 to get more debugging output
+$debug = 0;
+
+require 5.000;
+
+use File::Basename;
+
+
+# the following is a list of "variable names" the values of which should be
+# put into the result file in the order given.
+# Variables can be:
+# - Any field descriptor present in the DCT output like "ClassValue_1_Name".
+# - A perl regular expression that describes more than one field
+#   descriptor. This makes only sense in combination with a function
+#   (see below)
+# - A field descriptor for the results or stats file. These descriptors
+#   must be preceded with results. and stats., respectively and may
+#   not be regular expressions
+# - One of the special descriptos:
+#     %LA - the name of the learning algorithm
+#     %DS - the name of the dataset (including attached seed etc)
+#     %FLD - the fold number (if breakup = foldla)
+#     %REP - the repeat number
+# - A function of any of the descriptors mentioned before. 
+#   Functions are specified in the form FUNNAME(descriptor)
+#   where descriptor may be a regular expression.
+#   Currently the following functions are allowed
+#     = AVG(maskedfield): the average of all values matching the 
+#        regular expression maskedfield 
+#     = instead of AVG, the following is also possible: SUM, COUNT,MIN, MAX
+#     = for convenience, there is MAXERR which calculates 1-MAX(xxx)
+#     = ACC(errorfield): convert an error rate to a success rate
+#   NOTE: functions cannot be nested!
+# - If breakup=lapairs, one line per pair of learning algorithms is
+#   generated. In that case the following special descriptors are valid:
+#     %LA1 - the name of learning algorithm one
+#     %LA2 - the name of learning algorithm one
+# - To be able to select no-pair data the following functions can
+#   be used for la-specific fields in results/stats:
+#     OFLA1(fieldname) - the value of fieldname for %LA1
+#     OFLA2(fieldname) - the value of fieldname for %LA2
+#     ACCOFLA1(fieldname) - 1.0 minus the value of fieldname for %LA1
+#     ACCOFLA2(fieldname) - 1.0 minus the value of fieldname for %LA2
+# The list of fields can be set by multiple use of option -F or
+# by reading in from a file (specified by option -fields)
+@fields  = (
+	    'Nr_attributes',
+	    'dc.Nr_sym_attributes',
+	    'dct.Nr_num_attributes',
+	    'dct.Nr_examples',
+	    'dct.Nr_classes',
+	    'MAX(ClassValue_[0-9]+_Freq)',
+	    'results.Error',
+	    'ACC(results.Error)',
+	    'results.Totaltime',
+	    '%LA',
+	    '%DS',
+	    'stats.Error'
+	    );
+
+
+# the seperator 
+$seperator = ",";
+$missingvalue = '?';
+$notpresent = $missingvalue;
+$verbose = 0;
+
+
+# A lookup table for translationg month names to month numbers
+%lookupmonths = 
+  ( "Jan" => "01", "Feb" => "02", "Mar" => "03",
+    "Apr" => "04", "May" => "05", "Jun" => "06",
+    "Jul" => "07", "Aug" => "08", "Sep" => "09",
+    "Oct" => "10", "Nov" => "11", "Dec" => "12");
+
+
+
+$normalize_alg = "";  # if blank no normalization to algorithm is done
+$normalize_host = 0; 
+
+
+use Getopt::Long;
+use File::Basename;
+
+sub showusage {
+  my $thefields = join(",",@fields);
+print STDERR <<USAGE
+ Usage: $0 [-i file | {-f fielddesc}* ] files
+ [-o datafile] [-n namesfile] 
+ [-hostnorm normalizationfile] [-algnorm arg] 
+ [-s seperator] [-m missingval] 
+ [-breakup la | lapair]
+ [-ignoredct] [-ignoreresults] [-ignorestats]
+ [-v] [-d] files+
+  -i file: file that contains field specifications (one per line)
+  -f fieldspec: field specifications from command line 
+  -o datafile: name of file that will contain the data (default: stdout)
+  -n namesfile: name of a namesfile skeleton that describes data 
+     (default: none). This file is just a starting point for manual
+     adaption.
+  -fn: include a line of fieldnames as the first line of output
+  -hostnorm file: the name of a file that contains normalization data lines
+     in the format 'hostname,algorithm,datefrom,dateto,factor'
+  -algnorm alg: express times as multiples of the times of alg
+  -s sep: field seperator (default: $seperator)
+  -m mv:  missing value indicator (default: $missingvalue)
+  -mnp x: not present indicator: to be used for everything not
+    found in the files (default is same as that for -m: $missingvalue)
+  -breakup ds | la | lapair | foldla: if la, one line for each learning algorithm per
+      dataset. if lapair, one line for each pair of learning algorithm. if 
+      foldla: one line for each ds/algorithm/fold combination
+  -ignoredct/-ignoresults/-ignorestats: dont process the respective files
+  -dcext ext: extension to use for the DC file
+  -strip: strip any strange characters from values that are not numbers
+  -h: show this help, even if other options and parms given; dont run
+  -v: verbose
+  -d: debug, implies verbose
+  files:  one or more file patterns specifying a single dct, results
+    or stats 
+    file for each experiment. The extension of these
+    files is ignored and the basename is used with the
+    extensions .dct, .results, and .stats
+One line of output is written to stdout for every file specified
+Special fields and functions: 
+  AVG(regexp): average of values (also: COUNT, SUM, MIN, MAX) for
+    fields from DCT file
+  ACC(Errorfield): 1.0 minus error value from results or stats file
+  %DS ... dataset name 
+  %LA ... learning algorithm (for breakup = la)
+  %FLD .. CV fold (for breakup = foldla)
+  %LA1, %LA2 ... learning algorithm 1 and 2 (for breakup = lapair)
+  OFLA1(field), OFLA2(field) ... value for %LA1, %LA2 from result/stats
+    file (for breakup = lapair)
+  ACCOFLA1(errorfield), ACCOFLA2(errorfield) ... 1.0 - OFLA1/2
+Note: the field result.Start will automatically be converted to 
+  format YYYYMMDD, but the field result.Stop not
+Program version: $version ($date)
+
+Default field specifications: $thefields
+USAGE
+;
+exit(1);
+}
+
+GetOptions("f=s\@", "s=s", "i=s", "m=s", "o=s","n=s", "mnp=s",
+	   "hostnorm=s", "algnorm=s", "breakup=s",
+	   "ignoredct","ignoreresults","ignorestats","strip","fn","dcext=s",
+	   "h", "v", "d") or showusage();
+
+if ($opt_h) {
+  &showusage;
+  exit(0);
+}
+if ($opt_v) { $verbose = 1; }
+if ($opt_d) { $debug = 1; }
+if ($debug) { $verbose = 1; }
+
+if ($opt_o ne "") {
+  print STDERR "Writing: $opt_o\n" if $verbose;
+  open(OUT,">$opt_o") || die "Couldn't open $opt_o for writing";
+  $outstream = OUT;
+} else {
+  $outstream = STDOUT;
+}
+if ($opt_i ne "") {
+  $#fields = 0;
+  print STDERR "Reading: $opt_i\n" if $verbose;
+  open(IN,"<$opt_i") || die "Couldn't open $opt_i for reading";
+  while(<IN>) {
+    if (/^\s*$/ || /^[ \#]/) {
+      next;
+    } else {
+      chomp;
+      $fields[$i++] = $_;
+    }
+  }
+  close(IN) || die "Couldn't close $opt_i";
+} else {
+  if ($opt_f[0] ne "") {
+    @fields = @opt_f;
+  }
+}
+if ($opt_m ne "") {
+  $missingvalue = $opt_m;
+  $notpresent = $missingvalue;
+}
+
+if ($opt_mnp ne "") {
+  $notpresent = $opt_mnp;
+}
+if ($opt_s ne "") {
+  $seperator = $opt_s;
+}
+if ($opt_breakup eq "") { $opt_breakup = "la"; }
+if ($opt_breakup ne "la" && $opt_breakup ne "lapair" &&
+    $opt_breakup ne "ds" && $opt_breakup ne "foldla") {
+  die "-breakup needs either ds, la, lapair, or foldla";
+}
+
+if ($opt_algnorm) { $normalize_alg = $opt_algnorm; }
+if ($opt_hostnorm) { 
+  $normalize_host = 1; 
+  %normalize_data = ();
+  print STDERR "Reading: $opt_hostnorm\n" if $verbose;
+  open(IN,"<$opt_hostnorm") or die "Couldn't open $opt_hostnorm";
+  while (<IN>) {
+    if (/^\#/ || /^\s*$/) {
+      next;
+    } elsif (/^([^,]+),([^,]+),([^,]+),([^,]+),([^,]+)$/) {
+      $normalize_data{"$1,$2,$3,$4"} = $5;
+    } else {
+      print STDERR "Warning: strange normalization line in $opt_hostnorm:\n";
+      print STDERR $_;
+    }
+  }
+  close(IN) or die "Couldnt close $opt_hostnorm after reading";
+}
+
+# process the field array and create the arrays with matching expressions,
+# the array with functions to apply, and the array of field sources
+$i = 0;
+foreach ( @fields ) {
+
+  # this contains any discrete values found for field[i]
+  @{$valuelist[$i]} = ();     
+
+  if (/^([A-Z0-9]+)\(([^\)]+)\)$/) {
+    $patterns[$i] = $2;
+    $func = $1;
+    $funcs[$i] = $func;
+    $funcnames[$i] = $func;
+  SWITCH: {
+      if ($func eq "AVG") {
+	$funcs[$i] = calc_avg;
+	last SWITCH;
+      }
+      if ($func eq "SUM") {
+	$funcs[$i] = calc_sum;
+	last SWITCH;
+      }
+      if ($func eq "COUNT") {
+	$funcs[$i] = calc_count;
+	last SWITCH;
+      }
+      if ($func eq "MIN") {
+	$funcs[$i] = calc_min;
+	last SWITCH;
+      }
+      if ($func eq "MAX") {
+	$funcs[$i] = calc_max;
+	last SWITCH;
+      }
+      if ($func eq "MAXERR") {
+	$funcs[$i] = calc_max_err;
+	last SWITCH;
+      }
+      if ($func eq "ACC") {
+	$funcs[$i] = acc;
+	last SWITCH;
+      }
+      if ($func eq "OFLA1") {
+	$funcs[$i] = 1; # dummy function
+	last SWITCH;
+      }
+      if ($func eq "OFLA2") {
+	$funcs[$i] = 1; # dummy function
+	last SWITCH;
+      }
+      if ($func eq "ACCOFLA1") {
+	$funcs[$i] = acc; # dummy function
+	last SWITCH;
+      }
+      if ($func eq "ACCOFLA2") {
+	$funcs[$i] = acc; # dummy function
+	last SWITCH;
+      }
+      print STDERR "Unknown function: $func\n";
+    }
+  } else {
+    $patterns[$i] = $_;
+    $funcs[$i] = "";
+  }
+  # now pattern can still contain a file designator: this is
+  # everything before the first dot
+  $patterns[$i] =~ /^([^\.]+\.)?(.+)$/;
+  $patterns[$i] = $2;
+  $types[$i] = $1;
+  if ($types[$i] eq "") {
+    $types[$i] = "dct.";
+  }
+  chop($types[$i]); # remove the dot
+  print STDERR "Found pattern: $patterns[$i] and type: $types[$i] and func: $funcs[$i]\n" if $verbose;
+  $i++;
+}
+
+if ($debug) {
+  for ($i=0; $i<=$#fields; $i++) {
+    print STDERR "Field $i: $types[$i], $patterns[$i], $funcs[$i]\n";
+  }
+}
+
+if ($opt_fn) {
+  my @fieldnames =   ();
+  for($i=0;$i<=$#patterns;$i++) {
+    $name = $patterns[$i];
+    if ($name eq "%LA") { $name = "Algorithm"; }
+    elsif ($name eq "%DS") { $name = "Dataset"; }
+    $pref = "";
+    if ($funcs[$i]) { $pref .= $funcnames[$i]; }
+    if ($types[$i] ne "dct" ) { $pref .= $types[$i]; }
+    $name = $pref . $name;
+    $name =~ s/ //g;
+    $typ =~ s/ //g;
+    $fieldnames[$i] = stripstrange($name);
+  }
+  print $outstream join(",",@fieldnames),"\n";
+}
+
+
+# get all the files specified as arguments, take their filstem portion
+# and create a unique sorted list of the filestems
+%seen = (); @tmpfiles = ();
+foreach $item (@ARGV) {
+  ($name,$path,$suffix) = fileparse($item,"\.[^\.]*");
+  $file = $path . $name;
+  unless ($seen{$file}) {
+    $seen{$file} = 1;
+    push(@tmpfiles, $file);
+  }
+}
+
+@infiles = sort(@tmpfiles);
+
+if ($#infiles == -1) {
+  print STDERR "Nothing to do: no files specified\n";
+  &showusage();
+}
+
+if ($verbose) {
+  print STDERR "Processing the following filestems:\n";
+  foreach (@infiles) {
+    print STDERR "  ",$_,"\n";
+  }
+}
+
+# here we process the list of files we got as argument. Only the basename
+# is taken and substituted 
+
+foreach $filestem ( @infiles ) {
+  
+  # clear values
+  print STDERR "Clearing values for filestem $filestem\n" if $debug;
+  for ($i=0;$i<=$#fields;$i++) {
+    $values[$i] = [];
+  }
+  
+  $filestem =~ /([^\/]+)$/;
+  $key_ds = $1;
+
+  # (1) process the DCT file 
+  if ($opt_dcext) {
+    $infile = $filestem . $opt_dcext;
+  } else {
+    $infile = $filestem . ".dct";
+  }
+
+  if ($opt_ignoredct eq "1") {
+    print STDERR "Ignoring: ",$infile,"\n" if $verbose;
+  } else {
+    print STDERR "Reading: ",$infile,"\n" if $verbose;
+    open(IN,"<$infile") or die "Couldn't open $infile for parsing";
+    
+    while(<IN>) {
+      for ($i=0;$i<=$#fields;$i++) {
+	if ($types[$i] eq "dct") {
+	  # TODO: very slow, use some trick to speed up!
+	  if (/^($patterns[$i]): (.+)$/) {  # SLOW!!!!
+	    print STDERR "Matched field $i: $fields[$i]\n" if $debug;
+	    $key = $1;
+	    $value = $2;
+	    $value =~ s/\?/$missingvalue/o;
+	    $value =~ s/NaN/$missingvalue/o;
+	    $value =~ s/\*/$missingvalue/o;
+	    print STDERR "Matched $patterns[$i]: $key, Value is >$value<\n" if $debug;
+	    if ($funcs[$i] ne "") {
+	      print STDERR "Needs function: $funcs[$i]\n" if $debug;
+	    }
+	    push @{$values[$i]},$value;
+	    #$values[$i] = \@array;
+	    print STDERR "Values $i now: >",join(",",@{$values[$i]}),"<\n" if $debug;
+	  } # if /pattern/ 
+	} # if type==dct
+      } # for all fields
+    } # while still lines in DCT file
+    close(IN) or die "Couldn't close $infile after reading";
+  } # ignoredct?
+
+  # process the values we found: calculate the functions to avoid
+  # multiple evaluation later when things are written
+  # if more than one valeu found without a function, take last one
+  for ($i=0;$i<=$#fields;$i++) {
+    if ($types[$i] eq "dct") {
+      if ($funcs[$i] ne "") {
+	$func = $funcs[$i];
+	$value = &$func($values[$i]);
+      } else {
+	if (($n=$#{$values[$i]}) > 0) {
+	  $value = join("/",@{$values[$i]}); # SLOW!!!!
+	  print STDERR "Warning: more than one value for $fields[$i]: $value\n";
+	  print STDERR "I am using the last one encountered\n";
+	  $value = $values[$i][$n];
+	} elsif ($n == -1 && $types eq "dct") {
+	  print STDERR "Warning: field $fields[$i] not found for $filestem!\n";
+	  $value = $notpresent;
+	} else {
+	  $value = $values[$i][0];
+	}
+      }
+      $value =~ s/\s//g;
+      $values[$i] = $value;
+      print STDERR "The value for field $i is: $value \n" if $debug;
+    }
+  }
+  # now we have a value for each field of type dct
+
+  # (2) process the results file: after processing we have a hash
+  # where for each algorithm we have an array of key/value pairs
+  # (after selection and any normalization)
+
+  $cur_host = "";
+  $cur_date = "";
+  
+  %entries = ();
+  %hosts = ();
+  %reslas = ();
+  %resbyfoldla = ();
+  %results = ();
+
+  $infile = $filestem . ".results";
+  if ($opt_ignoreresults eq "1") {
+    print STDERR "Ignoring: ",$infile,"\n" if $verbose;
+  } else {
+    print STDERR "Reading: ",$infile,"\n" if $verbose;
+    open(IN,"<$infile") or die "Couldn't open $infile for parsing";
+    
+    while(<IN>) {
+      if (/^Version run_exp: (.+)$/) {
+	$results{'Version run_exp'} = $1;
+      } elsif (/^Host: (.+)$/) {
+	$cur_host = $1;
+	$results{Host} = $cur_host;
+      } elsif (/^Start: (.+)$/) {
+	$cur_date = $1;
+	$cur_date =~ /^[^ ]+[ ]+(\S+)/; $date_month = $lookupmonths{$1};
+	
+	$cur_date =~ /^[^ ]+[ ]+[^ ]+[ ]+(\S+)/; $date_day = $1;
+	if ($date_day < 10) { $date_day = "0" . $date_day; }
+	$cur_date =~ /([^ ]+)$/; $date_year = $1;
+	$cur_date = $date_year . $date_month . $date_day;
+	$results{Start} = $cur_date;
+      } elsif (/^([^ ]+) ([0-9]+) ([0-9]+) ([^ ]+): (\S+)/) {
+	$name = $1; 
+	$rep = $2;
+	$fold = $3; 
+	$alg2 = $4; 
+	$val = $5; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$resbyfoldla{"$rep,$fold,$alg2"}},"$name,$val"; 
+	print "Resfoldla: $name,$rep,$fold,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+) ([0-9]+) ([0-9]+): (\S+)/) {
+	$name = $1; 
+	$rep = $2;
+	$fold = $3; 
+	$val = $4; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$resbyfoldla{"$rep,$fold"}},"$name,$val"; 
+	print "Resfoldla: $name,$rep,$fold,$val\n" if $debug ;
+      } elsif (/([^ ]+) ([^ ]+): (\S+)/) {
+	$name = $1;
+	$alg = $2;
+	$val = $3;
+	$hosts{$cur_host} = 1;
+	$reslas{$alg} = 1;
+	## ?????? probably wrong? should be results instead of entries?
+	$entries{"$name,$alg,$cur_host,$cur_date"} = $val;
+	print "Results: $name,$alg,$cur_host,$cur_date,$val\n" if $debug ;
+      } elsif (/^([^ ]+): (\S+)$/) {
+	$results{$1} = $2;
+      } elsif (/^([^:]+): (.+)$/) {
+	$results{$1} = $2;
+      }
+      # @@@@@
+      $i = 0;
+      foreach $rky ( @patterns ) {
+	if ($types[$i++] eq "results") {
+	  if (/^$rky: (\S+)/) {
+	    $results{"$rky"} = $1;
+	  } elsif (/^$rky([^:]*): (\S+)/) {
+	    $results{"$rkey,$1"} = $2;
+	  }
+	}
+      }
+    }
+    close(IN) or die "Couldn't close $infile after reading";
+    
+    # now entries contains one entry (the last one found in the file)
+    # for each combination of name,alg,host, and date
+    # we can now do any normalization of measurements 
+    # we want.
+    
+    # (2.1) normalization by algorithm: for each host, the times
+    # are expressed as multiples of the corresponding time of a 
+    # reference algorithm.
+  # NOTE: if there are several time mesurements for the 
+  # normalization algorithm on the same host, but different dates
+  # or even the same date, only the last value will be used for
+  # normalization (if on different dates, if same date arbitrary
+  # one is picked)
+  if ($normalize_alg ne "") {
+    # for each host, find the times for the specified algorithm
+    # and divide all times through that value.
+    foreach $h (keys %hosts) {
+      $factor_train = 0;
+      $factor_test = 0;
+      $factor_total = 0;
+      # we use sort here to ensure that if name,la,host are same
+      # entries are sorted by ascending date
+      foreach $k (sort keys %entries) {
+	# TODO check for speedup
+	if ($k =~ /^Traintime,$normalize_alg,$h/) { # SLOW!!!!
+	  $factor_train = $entries{$k};
+	} elsif ($k =~ /^Testtime,$normalize_alg,$h/) { # SLOW!!!!
+	  $factor_test = $entries{$k};
+	} elsif ($k =~ /^Totaltime,$normalize_alg,$h/) { # SLOW!!!!
+	  $factor_total = $entries{$k};
+	}
+      }
+      # now we should have found a factor for each time_xxx for this host
+      if ($factor_train == 0 || $factor_test == 0 || $factor_total == 0) {
+	print STDERR  "Error: could not normalize for host $h and la $normalize_alg\n";
+	die "Train: $factor_train, Test: $factor_test, Total $factor_total\n";
+      }
+      # carry out the actual normalization
+      foreach $k (keys %entries) {
+	($name,$alg,$host,$date) = split(',',$k);
+	if ($host eq $h) {
+	  $val = $entries{$k};
+          print "Val is $val\n" if $debug;
+	  if ($name eq "Traintime") {
+	    $val = div2($val , $factor_train);
+	  } elsif  ($name eq "Testtime") {
+	    $val = div2($val , $factor_test);
+	  } elsif ($name eq "Totaltime") {
+	    $val = div2($val , $factor_total);
+	  }
+	  $entries{$k} = $val;
+	}
+      }
+    }
+  }
+  
+  # (2.2) inter-host normalization: the times are multiplied by the 
+  # apropriate factor for each host
+  if ($normalize_host == 1) {
+    while (($key,$val) = each(%entries)) {
+      ($name,$alg,$host,$date) = split(',',$key);
+      if ($name =~ /time$/) {
+	# lookup entry for this host and date in normalization table
+	$found = 0;
+      INFO: while (($k,$v) = each(%normalize_data)) {
+	  ($h,$a,$from,$to) = split(",",$k);
+	  if (($host eq $h) && ($alg eq $a) &&
+	      ($date < $to) && ($date > $from)) {
+            print "Val is $val \n" if $debug;
+	    $val = mul2($val , $v);
+	    $found = 1;
+	    $entries{$key} = $val;
+	    last INFO;
+	  }
+	}
+	keys %normalize_data; # reset each iterator;
+	if ($found == 0) {
+	  die "Error: no normalization factor found for $host/$alg at $date\n";
+	}
+      }
+    }
+  }
+  
+  # now we select  lines so that only the measurements of the most
+  # recent experiments are left
+  # we wantonly one entry for each combination of 
+  # la,name,value
+  %entries2 = ();
+  foreach $key (sort keys %entries) {
+    ($name,$alg,$host,$date) = split(',',$key);
+    $tmp = $entries{$key};
+    if ($tmp eq '?') { $tmp = $missingvalue; }
+    $entries2{"$name,$alg"} = $tmp;
+  }
+  %entries = %entries2; %entries2 = ();
+  
+  # Reorganize data so that all name/value pairs that belong
+  # to one algorithm are together
+  %resbyla = ();
+  foreach $key (sort keys %entries) {
+    $val = $entries{$key};
+    ($name,$alg,$host,$date) = split(',',$key);
+    push @{$resbyla{$alg}},"$name,$val";
+    #print $key,",$val\n";
+  }
+  
+  # just for debugging we print the stuff
+  if ($debug) {
+    foreach $key (sort keys %resbyla) {
+      @val = @{$resbyla{$key}};
+      $val = join "/", @val;
+      print "RESBYLA: ",$key," ",$val,"\n";
+    }
+    foreach $key (sort keys %results) {
+      $val = $results{$key};
+      print "RESULTS: ",$key," ",$val,"\n";
+    }
+  }
+  }
+  # (3) process the stats file
+  # This is essentially the same as with the results file,
+  # but we dont need current host, current date nor do we 
+  # need normalization.
+  # In addition we have to process algorithm pair infos
+
+
+  %statbyla = ();
+  %statbylapair = ();
+  %statbyfoldla = ();
+  %stats = ();
+
+  $infile = $filestem . ".stats";
+  if ($opt_ignorestats eq "1") {
+    print STDERR "Ignoring: ",$infile,"\n" if $verbose;
+  } else {
+    print STDERR "Reading: ",$infile,"\n" if $verbose;
+    open(IN,"<$infile") or die "Couldn't open $infile for parsing";
+    
+    while(<IN>) {
+      if (/^([^ ]+) ([^ \/]+): (\S+)/) {
+	$name = $1;
+	$alg = $2;
+	$val = $3;
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbyla{$alg}},"$name,$val";
+	print "Statsla: $name,$alg,$val\n" if $debug ;
+	# QUICK&DIRTY: if the first word for a multi-word entry is
+	# all numeric, we assume it is a fold number
+      } elsif (/^([^ ]+) ([0-9]+)[\/ ]([^ ]+): (\S+)/) {
+	$name = $1; 
+	$fold = $3; 
+	$alg2 = $2; 
+	$val = $4; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbyfoldla{"$fold,$alg2"}},"$name,$val"; 
+	print "Statsfoldla: $name,$fold,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+) ([^ ]+)[\/ ]([0-9]+): (\S+)/) {
+	$name = $1; 
+	$fold = $3; 
+	$alg2 = $2; 
+	$val = $4; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbyfoldla{"$fold,$alg2"}},"$name,$val"; 
+	print "Statsfoldla: $name,$fold,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+) ([^ ]+) ([0-9]+) ([0-9]+): (\S+)/) {
+	$name = $1; 
+	$alg2 = $2; 
+	$rep = $3; 
+	$fold = $4; 
+	$val = $5; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbyfoldla{"$fold,$alg2"}},"$name,$val"; 
+	print "Statsfoldla: $name,$fold,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+) ([0-9]+) ([^ :]+): (\S+)/) {
+	$name = $1; 
+	$alg2 = $2; 
+	$rep = $3; 
+	$fold = $4; 
+	$val = $5; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbyfoldla{"$fold,$alg2"}},"$name,$val"; 
+	print "Statsfoldla: $name,$fold,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+) ([^ \/]+)[\/ ]([^ ]+): (\S+)/) {
+	$name = $1; 
+	$alg1 = $2; 
+	$alg2 = $3; 
+	$val = $4; 
+	if ($val eq '?') { $val = $missingvalue; }
+	push @{$statbylapair{"$alg1,$alg2"}},"$name,$val"; 
+	print "Statslapair: $name,$alg1,$alg2,$val\n" if $debug ;
+      } elsif (/^([^ ]+): (\S+)/) {
+	$stats{$1} = $2; 
+	print "Stats: $1,$2\n" if $debug ;
+      } else {
+	if (/^p-Val McNemar/) { # old format, ignore 
+	} else {
+	  print STDERR "WARNING: Strange line in $infile:\n";
+	  print STDERR $_;
+	}
+      }
+      # @@@@@
+      $i = 0;
+      foreach $rky ( @patterns ) {
+	if ($types[$i++] eq "stats") {
+	  if (/^$rky: (\S+)/) {
+	    $stats{"$rky"} = $1;
+	  } elsif (/^$rky([^:]*): (\S+)/) {
+	    $stats{"$rkey,$1"} = $2;
+	  }
+	}
+      }
+    }
+    close(IN) or die "Couldn't close $infile after reading";
+  
+    
+    # just for debugging we print the stuff
+    if ($debug) {
+      foreach $key (sort keys %statbyla) {
+	@val = @{$statbyla{$key}};
+	$val = join "/", @val;
+	print "STATBYLA: ",$key," ",$val,"\n";
+      }
+      foreach $key (sort keys %statbylapair) {
+	@val = @{$statbylapair{$key}};
+	$val = join "/", @val;
+	print "STATBYLAPAIR: ",$key," ",$val,"\n";
+      }
+      foreach $key (sort keys %stats) {
+	$val = $stats{$key};
+	print "RESULTS: ",$key," ",$val,"\n";
+      }
+    }
+  }
+
+
+  # make sure we have found the same algorithms in the stats and
+  # the results file
+
+  # (4) print the output lines: for each LA found one line is
+  # written (unless breakup=lapairs, but this is not implemented yet)
+  # All data from the dct file is the same for these lines
+  
+  if ($opt_breakup eq "la") {
+  
+#     if ($opt_ignoreresults eq "") {
+#       @las = sort keys %reslas;
+#     } elsif ($opt_ignorestats eq "") {
+#       @las = sort keys %statbyla;
+#     } else {
+#       die "breakup by la doesnt make sense without either a stats or results file";
+#     }
+    print "ignorestats: $opt_ignorestats\n" if $debug;
+    print "ignoreresults: $opt_ignoreresults\n" if $debug;
+    if ($opt_ignorestats ne "1") {
+      @las = sort keys %statbyla; print "ignorestats is empty\n" if $debug;
+    } elsif ($opt_ignoreresults ne "1") {
+      @las = sort keys %resbyla; print "ignoreresults is empty\n" if $debug;
+    } else {
+      die "breakup by la doesnt make sense without either a stats or results file";
+    }
+   # TODO: NOTE: instead of choosing one, choose union of 
+   # resbyla and statbyla. Also check why we used reslas instead of
+   # resbyla in previsou versions, can there be a difference in the
+   # set of included algorithms?
+   print "\nresbyla: ",sort keys %resbyla,"\n" if $debug;	
+   print "reslas: ",sort keys %reslas,"\n" if $debug;	
+   print "statbyla: ",sort keys %statbyla,"\n" if $debug;	
+   print "Las selected: ",join(",",@las),"\n" if $debug;	
+
+    foreach $la (@las) {
+      # go through the list of fields; for dct fields we just 
+      # retrieve the value, for results and stats fields we 
+      # have to lookup the value in the apropriate hash and 
+      # process it if required.
+      for($i=0;$i<=$#fields;$i++) {
+	$outfields[$i] = $notpresent;
+	if ($fields[$i] eq "%DS") {
+	  $outfields[$i] = $key_ds;
+	} elsif ($fields[$i] eq "%LA") {
+	  $outfields[$i] = $la;
+	} elsif ($types[$i] eq "dct") {
+	  $outfields[$i] = $values[$i];
+	} elsif ($types[$i] eq "results") {
+	  # is this a non-la-specific field
+	  if ($tmp=$results{$patterns[$i]}) {
+	    $outfields[$i] = $tmp;
+	  } else {		# no, lookup in la-specific data
+	    @tmp =
+	      # TODO check for speedup
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$resbyla{$la}}; # SLOW!!!
+	    $outfields[$i] = $tmp[0]; 
+	  }
+	  if ($func=$funcs[$i]) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	} elsif ($types[$i] eq "stats") {
+	  # is this a non-la-specific field
+	  if ($tmp=$stats{$patterns[$i]}) {
+	    $outfields[$i] = $tmp;
+	  } else {		# no, lookup in la-specific data
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$statbyla{$la}}; # SLOW!!!!
+	    $outfields[$i] = $tmp[0]; 
+	  }
+	  if ($func=$funcs[$i]) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	}
+	if ($outfields[$i] eq "") { $outfields[$i] = $notpresent; }
+      }
+      @outfields = map { stripstrange($_) } @outfields if $opt_strip;
+      print $outstream join($seperator,@outfields),"\n";
+    }
+  } elsif ($opt_breakup eq "lapair") {
+    if ($opt_ignorerestats eq "1") {
+      die "breakup by lapair doesnt make sense without a stats file";
+    }
+    foreach $lapair (sort keys %statbylapair) {
+      ($la1,$la2) = split(",",$lapair);
+      for($i=0;$i<=$#fields;$i++) {
+	$outfields[$i] = $notpresent;
+	if ($fields[$i] eq "%DS") {
+	  $outfields[$i] = $key_ds;
+	} elsif ($fields[$i] eq "%LA1") {
+	  $outfields[$i] = $la1;
+	} elsif ($fields[$i] eq "%LA2") {
+	  $outfields[$i] = $la2;
+	} elsif ($types[$i] eq "dct") {
+	  $outfields[$i] = $values[$i];
+	} elsif ($types[$i] eq "results") {
+	  if ($funcnames[$i] =~ /OFLA1/) {
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$resbyla{$la1}}; # SLOW!!!
+	    $outfields[$i] = $tmp[0]; 
+	  } elsif ($funcnames[$i] =~ /OFLA2/) {
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$resbyla{$la2}}; # SLOW!!!
+	    $outfields[$i] = $tmp[0]; 
+	  } else {
+	  # is it a non la-specific field 
+	    if ($tmp=$results{$patterns[$i]}) {
+	      $outfields[$i] = $tmp;
+	    } else {
+	      #assume OFLA1
+	      @tmp =
+		map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$resbyla{$la1}}; # SLOW!!!
+	      $outfields[$i] = $tmp[0]; 
+	    }
+	  }
+	  if ($func=$funcs[$i]) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	} elsif ($types[$i] eq "stats") {
+	  $outfields[$i] = $notpresent;
+	  if ($funcnames[$i] =~ /OFLA1/) {
+	    @tmp =
+	      map {  /^$patterns[$i],(.+)$/ ? $1 : () } @{$statbyla{$la1}}; #SLOW!!!!!!
+	    $outfields[$i] = $tmp[0]; 
+	  } elsif ($funcnames[$i] =~ /OFLA2/) {
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$statbyla{$la2}}; #SLOW!!!!
+	    $outfields[$i] = $tmp[0]; 
+	  } else {
+	    # is it  a non la-specific field 
+	    if ($tmp=$stats{$patterns[$i]}) {
+	      $outfields[$i] = $tmp;
+	    } else {
+	      # now it can only be a la-pair specific field
+	      @tmp =
+		map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$statbylapair{"$la1,$la2"}}; #SLOW!!
+	      $outfields[$i] = $tmp[0]; 
+	    }
+	  }
+	  if (($func=$funcs[$i]) && ($func != 1)) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	}
+	if ($outfields[$i] eq "") { $outfields[$i] = $notpresent; }
+      }
+      @outfields = map { stripstrange($_) } @outfields if $opt_strip;
+      print $outstream join($seperator,@outfields),"\n";
+    }
+  } elsif ($opt_breakup eq "foldla") {
+    if ($opt_ignorestats eq "1") {
+      die "breakup by lapair doesnt make sense without a stats file";
+    }
+    foreach $lapair (sort keys %statbyfoldla) {
+      ($fld,$la) = split(",",$lapair);
+      for($i=0;$i<=$#fields;$i++) {
+	$outfields[$i] = $notpresent;
+	if ($fields[$i] eq "%DS") {
+	  $outfields[$i] = $key_ds;
+	} elsif ($fields[$i] eq "%LA") {
+	  $outfields[$i] = $la;
+	} elsif ($fields[$i] eq "%FLD") {
+	  $outfields[$i] = $fld;
+	} elsif ($types[$i] eq "dct") {
+	  $outfields[$i] = $values[$i];
+	} elsif ($types[$i] eq "results") {
+	  # is it a non la-specific field 
+	  if ($tmp=$results{$patterns[$i]}) {
+	    $outfields[$i] = $tmp;
+	  } else {
+	    #assume OFLA1
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$resbyla{$la}}; #SLOW!!!!
+	    $outfields[$i] = $tmp[0]; 
+	  }
+	  if ($func=$funcs[$i]) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	} elsif ($types[$i] eq "stats") {
+	  # is it  a non la-specific field 
+	  if ($tmp=$stats{$patterns[$i]}) {
+	    $outfields[$i] = $tmp;
+	  } else {
+	    # now it can only be a la-pair specific field
+	    @tmp =
+	      map { /^$patterns[$i],(.+)$/ ? $1 : () } @{$statbyfoldla{"$fld,$la"}}; #SLOW!!!
+	    $outfields[$i] = $tmp[0]; 
+	  }
+	  if (($func=$funcs[$i]) && ($func != 1)) {
+	    $outfields[$i] = &$func($outfields[$i]);
+	  }
+	}
+	if ($outfields[$i] eq "") { $outfields[$i] = $notpresent; }
+      }
+      @outfields = map { stripstrange($_) } @outfields if $opt_strip;
+      print $outstream join($seperator,@outfields),"\n";
+    }
+  } elsif ($opt_breakup eq "ds") {
+    # go through the list of fields; for dct fields we just 
+    # retrieve the value;
+    # for results and stats fields that refer to LAs or LA-pairs
+    # we insert missing values for now
+    for($i=0;$i<=$#fields;$i++) {
+      $outfields[$i] = $notpresent;
+      if ($fields[$i] eq "%DS") {
+	$outfields[$i] = $key_ds;
+      } elsif ($fields[$i] eq "%LA") {
+	$outfields[$i] = $notpresent;
+      } elsif ($types[$i] eq "dct") {
+	$outfields[$i] = $values[$i];
+      } elsif ($types[$i] eq "results") {
+	$outfields[$i] = $notpresent;
+	# is this a non-la-specific field
+	if (($tmp=$results{$patterns[$i]}) ne "") {
+	  $outfields[$i] = $tmp;
+	}
+	if ($func=$funcs[$i]) {
+	  $outfields[$i] = &$func($outfields[$i]);
+	}
+      } elsif ($types[$i] eq "stats") {
+	$outfields[$i] = $notpresent;
+	# is this a non-la-specific field
+	if (($tmp=$stats{$patterns[$i]}) ne "") {
+	  $outfields[$i] = $tmp;
+	}
+	if ($func=$funcs[$i]) {
+	  $outfields[$i] = &$func($outfields[$i]);
+	}
+      }
+      if ($outfields[$i] eq "") { $outfields[$i] = $notpresent; }
+    }
+    @outfields = map { stripstrange($_) } @outfields if $opt_strip;
+    print $outstream join($seperator,@outfields),"\n";
+  }
+  
+  my $j = 0;
+  foreach $thefield ( @outfields ) {
+    if (isdiscrete($thefield)) {
+      # this value must be saved for later reference in the names file
+      # unless it is already there
+      unless (${$valuehash[$j]}{"$thefield"}) {
+	push @{$valuelist[$j]},$thefield;
+	${$valuehash[$j]}{"$thefield"} = 1;
+      }
+    }
+    $j++;
+  }
+} 
+
+
+# if required, write the names file
+if ($opt_n) {
+  print STDERR "Writing: $opt_n\n" if $verbose;
+  open(OUT,">$opt_n") || die "Couldn't write names file $opt_n\n";
+  
+  for($i=0;$i<=$#valuelist;$i++) {
+    if (@{$valuelist[$i]} == ()) {
+      $typ = "continuous"; 
+    } else { 
+      $typ = join(",",@{$valuelist[$i]});
+    }
+    $name = $patterns[$i];
+    if ($name eq "%LA") { $name = "Algorithm"; }
+    elsif ($name eq "%DS") { $name = "Dataset"; }
+    $pref = "";
+    if ($funcs[$i]) { $pref .= $funcnames[$i]; }
+    if ($types[$i] ne "dct" ) { $pref .= $types[$i]; }
+    $name = $pref . $name;
+    $name =~ s/ //g;
+    $typ =~ s/ //g;
+    $name = stripstrange($name) if $opt_strip;
+    $typ = stripstrange($typ) if $opt_strip;
+    print OUT "$name: $typ.\n";
+  }
+}
+close(OUT);
+
+sub stripstrange {
+  # strip any strange characters from a value if it is 
+  # discrete
+  my $string = $_[0];
+  if (isdiscrete($string)) {
+    $string =~ s/[^0-9a-zA-Z]//g;
+  }
+  return $string;
+}
+
+sub isdiscrete {
+  # this does a quick and dirty test whether something might be
+  # discrete according to c4.5 format. We assume its discrete,
+  # when it is not numeric according to a quick guess, and not
+  # equal to the missingvalue indicator
+  my $string = $_[0];
+  if ($string eq $missingvalue || $string eq $notpresent) {
+    return 0;
+  }
+  if ($string =~ /^[\+\-\.][0-9]/ ||
+      $string =~ /^[\+\-]\.[0-9]/ ||
+      $string =~ /^[0-9]/) {
+    return 0;
+  }
+  return 1;
+}
+
+sub calc_sum {
+  local (*values) = $_[0];
+  local $n = $#values;
+  local $sum = 0.0;
+  local $i = 0;
+  local $ret = 0;
+  local $ok = 0;
+  print STDERR "Sum for: $n, ",@values,"\n" if $debug;
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      $ok++;
+      $sum += $values[$i]; # add up 
+    }
+  }
+  if ($ok == 0) {
+    $ret = $missingvalue;
+  } else {
+    $ret = $sum;
+  }
+  print STDERR "sum: $sum\n" if $debug;
+  return $ret;
+}
+
+sub calc_avg {
+  local (*values) = $_[0];
+  local $n = $#values;
+  local $sum = 0.0;
+  local $i = 0;
+  local $ret = 0;
+  local $ok = 0;
+  print STDERR "Average for: $n, ",@values,"\n" if $debug;
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      $ok++;
+      $sum += $values[$i]; # add up 
+    }
+  }
+  if ($ok == 0) {
+    $ret = $missingvalue;
+  } else {
+    $ret = $sum / ($n+1);
+  }
+  print STDERR "sum: $sum, ret: $ret\n" if $debug;
+  return $ret;
+}
+
+sub calc_count {
+  local (*values) = $_[0];
+  local $n = $#values;
+  local $sum = 0;
+  local $i = 0;
+  local $ret = 0;
+  local $ok = 0;
+  print STDERR "Count: $n, ",@values,"\n" if $debug;
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      $sum += 1; # add up 
+    }
+  }
+  print STDERR "ret: $sum\n" if $debug;
+  return $sum;
+}
+sub calc_min {
+  local (*values) = $_[0];
+  local $n = $#values;
+  local $min = 9.999999E99;
+  local $i = 0;
+  local $ok = 0;
+  print STDERR "Min: $n, ",@values,"\n" if $debug;
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      if ($values[$i] < $min) {
+	$min = $values[$i];
+      }
+      $ok++;
+    }
+  }
+  if ($ok > 0) {
+    $ret = $min;
+  } else {
+    $ret = $missingvalue;
+  }
+  print STDERR "ret: $min\n" if $debug;
+  return $ret;
+}
+
+sub calc_max_err {
+  local (*values) = $_[0];
+  my $ret = calc_max($values);
+  if ($ret  eq $missingvalue) {
+    return $missingvalue;
+  } else {
+    # we need to round here, becuase the subtractions can
+    # cause floating point conversion artefacts to appear
+    return sprintf("%.10g", 1.0 - $ret);
+  }
+}
+
+sub calc_max {
+  local (*values) = $_[0];
+  local $n = $#values;
+  local $max = -9.999999E99;
+  local $i = 0;
+  local $ok = 0;
+  print STDERR "Max: $n, ",@values,"\n" if $debug;
+  for ($i = 0; $i <= $n; $i++) {
+    if ($values[$i] =~ /[0-9\.]/) {
+      if ($values[$i] > $max) {
+	$max = $values[$i];
+      }
+      $ok++;
+    }
+  }
+  if ($ok > 0) {
+    $ret = $max;
+  } else {
+    $ret = $missingvalue;
+  }
+  print STDERR "ret: $ret\n" if $debug;
+  return $ret;
+}
+
+
+sub acc {
+  my $val = $_[0];
+  if ($val =~ /[0-9\.]+/) {
+    # we need to round here, becuase the subtractions can
+    # cause floating point conversion artefacts to appear
+    return sprintf("%.10g", 1.0 - $val);
+  } else {
+    return $missingvalue;
+  }
+}
+
+
+sub mul2 {
+  my $val1 = $_[0];
+  my $val2 = $_[1];
+  if ($val1 !~ /[0-9\.Ee\+\-]+/) { # quick hack to check numeric ...
+    return $missingvalue;
+  }
+  if ($val2 !~ /[0-9\.Ee\+\-]+/) {
+    return $missingvalue;
+  }
+  return $val1 * $val2;
+}
+sub div2 {
+  my $val1 = $_[0];
+  my $val2 = $_[1];
+  if ($val1 !~ /[0-9\.Ee\+\-]+/) { # quick hack to check numeric ...
+    return "?";
+  }
+  if ($val2 !~ /[0-9\.Ee\+\-]+/) {
+    return $missingvalue;
+  }
+  return $val1 / $val2;
+}

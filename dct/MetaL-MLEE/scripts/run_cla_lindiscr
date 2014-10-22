@@ -1,0 +1,49 @@
+#!/usr/local/bin/perl
+
+# run_cla_lindiscr
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_lindiscr,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# NOTE
+# resubstitution error for training set not implemented because LinDiscr
+# doesnt show this ...
+
+use vars qw($pgmname $pgmpath $trainargs %k $args $debug
+	    $testargs  $predfile  $filestem);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("LinDiscr",$pgmversion); 
+
+
+startCMD("LinDiscr -f $filestem $args $trainargs");
+while (defined($_=getLine())) {
+  if  (/Number of Coefficients\s*([0-9]+)/) {
+    $k{"Size"} = $1;
+    last;
+  } 
+}
+while (defined($_=getLine())) {
+}
+$k{"Traintime"} = stopCMD();
+
+startCMD("LinDiscrU -f $filestem  -p $predfile $args $testargs");
+while (defined($_=getLine())) {
+  if (/^Linear Discriminant test set Error\s*([0-9\.]+) /) {
+    $k{"Error"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.coef");
+
+endLA();
+

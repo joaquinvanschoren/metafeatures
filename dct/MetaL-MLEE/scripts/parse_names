@@ -1,0 +1,151 @@
+#!/usr/local/bin/perl
+
+my $version = '$Revision: 3.0 $';
+my $v_date  = '$Date: 2002/06/30 19:05:19 $';
+my $rcsid   = '$Id: parse_names,v 3.0 2002/06/30 19:05:19 johann Exp $';
+
+
+# parse_names
+# ===========
+#
+# Process names file and get basic measures:
+#   Type_data: class | regr | unknown
+#   N_continuous_attr
+#   N_discrete_attr
+#   N_total_discrete_vals: sum of all occuring discrete values
+#     for all discrete attributes
+#   Avg_discrete_vals: N_total_discrete_vals / N_discrete_attr
+#     or "0" if no discrete attributes
+#   Log_discrete_combinatinations: the natural log of the
+#     size of the discrete example subspace (i.e. the log
+#     of the number of possible value combinations for all 
+#     discrete attributes), "0" if no discrete attrs
+#   Avg_discrete_combinations: the geometric mean of the
+#     discrete values for all discrete attrs (n-th root of
+#     product(number_vals_i)) 
+#     This is equal to exp(Log_discrete_combinations / N_discrete_attr)
+#     "0" if no discrete attrs
+# 
+# Author: Johann Petrak (OeFAI)
+#
+
+# CHANGES:
+#   2001/06/14 1.4: if there is "strange whitespace" in the namesfile
+#     dont report an error, kust a warning, this seems to be the
+#     case for quite some files...
+#   2001/06/13 1.3: add -h flag and show version in usage info
+#   2001/06/08 1.2: use "0" instead of "?" for measures calculated
+#     for discrete attrs, when there are none
+#   2001/03/30 1.1: ignore "ignore" definitions
+#   2001/02/20 1.0: initial version
+
+require 5.000;
+use Getopt::Long;
+
+sub showusage  {
+  my $error = $_[0];
+  print "Error: ",$error,"\n" if ($error);
+  print STDERR <<USAGE
+  Usage: $0 -f namesfile [-d] [-h]
+  Version: $version ($v_date)
+USAGE
+;
+}
+
+GetOptions("f=s","d","h") or showusage();
+
+if ($opt_f eq "") {
+  showusage("Names file must be specified using option -f!\n");
+  exit(1);
+}
+
+my $fname = $opt_f;
+open (NIN,"<$fname") or die "Couldn't read names file $fname";
+my $have_special = 0;
+my $have_attr = 0;
+my $type = "unknown";
+my @labels = () ;
+my $l = 0;
+my $def = "";
+my $n_discrete = 0;
+my $n_continuous = 0;
+my $log_size = 0;
+my $n_classes = 0;
+my $sum_discr_val =0;
+while (<NIN>) {
+  $l++;
+  if (/^\s*$/) { 
+    next;
+  } elsif (/:/) {
+    if (!$have_special) {
+      # this names file just contains attr definition entries
+      $type = "attronly";
+    }
+    $have_attr = 1;
+    /:\s*(\S.*)$/;
+    $def = $1;
+    $def =~ s/\.\s*//;
+    @def = split(",",$def);
+    if (scalar(@def) > 1) {
+      # its a discrete attr and it has this many possible values
+      $n_discrete++;
+      $log_size += log(scalar(@def));
+      $sum_discr_val += scalar(@def);
+    } elsif ($def =~ /continuous/) {
+      $n_continuous++;
+    } elsif ($def =~ /ignore/) {
+      ; # well, ignore ...
+    } else {
+      printErr( "ERROR: Strange attr definition in names file ($l): $def\n");
+    }
+  } else  {
+    if ($have_attr) {
+      printErr("ERROR: Strange line $l in names file: $_");
+    }
+    $have_special = 1;
+    $chomp; # remove nl
+    s/\.\s*$//;  # remove trailing dot
+    s/^\s//;
+    s/\s$//;
+    if (/\s/) {
+      printErr("WARNING: Strange embedded whitespace in line $l in names file: $_\n");
+    }
+    @labels = split(",");
+    $n_classes = scalar(@labels);
+    if (scalar(@labels) == 1) { # only one "label": its the target attr name
+      $type = "regr";
+    } else {
+      $type = "class";
+    }
+  }
+}
+printM ("Type_data: $type\n");
+printM ("N_continuous_attr: $n_continuous\n");
+printM ("N_discrete_attr: $n_discrete\n");
+if ($n_discrete > 0) {
+  $avg_discr_val = $sum_discr_val / $n_discrete ;
+  $avg_comb = $log_size / $n_discrete;
+  $avg_comb = exp($avg_comb);
+} else {
+  $avg_discr = "0";
+  $avg_comb = "0";
+}
+printM ("N_total_discrete_vals: $sum_discr_val\n");
+printM ("Avg_discrete_vals: $avg_discr_val\n");
+printM ("Log_discrete_combinations: $log_size\n");
+printM ("Avg_discrete_combinations: $avg_comb\n");
+printM ("N_classes: $n_classes\n") if ($type eq "class");
+
+sub printM {
+  my $line = $_[0];
+  print "===== $line";
+}
+
+sub printErr {
+  my $line = $_[0];
+  print STDERR $line;
+  print $line;
+}
+
+
+

@@ -1,0 +1,39 @@
+#!/usr/local/bin/perl
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_baserand,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# run_cla_baserand
+# by Johann Petrak (OeFAI)
+#
+
+use vars qw($pgmname $pgmpath $trainargs $args $debug
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("baserand",$pgmversion); 
+
+startCMD("baseclearn -t -l 1 -f $filestem -m $filestem.$la.model $args $trainargs");
+while (defined($_=getLine())) {
+}
+$k{"Size"} = 1;
+$k{"Traintime"} = stopCMD();
+
+startCMD("baseclearn -e -l 1 -f $filestem -m $filestem.$la.model -p $predfile $args $testargs");
+while (defined($_=getLine())) {
+  if (/^Error:\s+([0-9\.]+)/) {
+    $k{"Error"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.$la.model");
+
+endLA();

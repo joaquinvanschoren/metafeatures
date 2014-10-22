@@ -1,0 +1,56 @@
+444
+5.0
+clementine_radians B true
+clementine_time_format S 'HH:MM:SS'
+clementine_time_rollover B false
+clementine_date_format S 'DD/MM/YY'
+clementine_date_baseline 1900
+clementine_default_century 1900
+clementine_century_rollover_switch B false
+clementine_century_rollover 30
+clementine_dprecision B false
+clementine_pr_places 3
+clementine_ruleset_mode W 'origin'
+clementine_protect_rule_eval W 'default_val'
+ENDOPT
+W 'ENDPARAM'
+AUTO_ANNOTATE[
+'Stream created by johann on Thu Apr 22 15:31:37 MET DST 1999'
+''
+'Stream Name: /bluebox/johann/METAL/WP5/develop/C5.str'
+''
+'Last Updated by johann on Fri May  7 17:23:59 MET DST 1999'
+]
+MANUAL_ANNOTATE[
+'V1.0'
+]
+1
+c50node c50icon 42 73 B false
+'method'
+hidden B false
+auto_name B false
+manual [ ]
+mode S 'Build Model'
+model_type S 'Decision Tree'
+rulename S 'class'
+method W 'Simple'
+bias W 'Accuracy'
+expected_noise 0
+group_symbolics B false
+minimum_branch 2
+boost B false
+ntrials 10
+heuristic S 'Gain ratio'
+numeric_bias_correction B true
+pruning_severity 75
+xval_fold 10
+misclass_costs P [ ]
+1.0
+ENDNODE
+
+0
+ENDSUPERS
+SCRIPTING
+ENDSCRIPT
+B false
+ENDSCRIPTING

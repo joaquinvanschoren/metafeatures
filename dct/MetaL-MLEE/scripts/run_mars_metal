@@ -1,0 +1,56 @@
+#! /bin/csh -f
+
+set version='$Revision: 3.0 $'
+set rcsid='$Id: run_mars_metal,v 3.0 2002/06/30 19:05:19 johann Exp $'
+# (04/10/01 carlos) added version info
+
+if ( ($#argv < 1) || ($1 == "-h") || ($1 == "-V") ) then
+	echo '==========================================================='
+	echo 'SYNTAX'
+	echo "    run_mars_metal <Stem> <MARS options>"
+	echo ""
+	echo "Options are :"
+	echo "-l  Interactive level (max num of variables per basis function)"
+	echo "      l = 1 Additive model > 1 up to l variable interactions "
+	echo "      allowed (default 8)"
+	echo "-k  max number of basis functions (default 15)"
+	echo "-n  Number of bootstrap samples to take in the bag"
+	echo "    n=0 use ll training data (no bootstrapping)"
+	echo "-s  Specify a seed for the pseudo random number generator"
+	echo "    (defaults to the pid)	"
+	echo ""
+	echo "    Important Note:"
+	echo "     	Assumes the existence of the files: "
+	echo "		<FileSteam>.data"
+	echo "		<FileSteam>.domain"
+	echo "		and <FileSteam>.test "
+	echo ""
+	echo "		Pedictions are output in file <FileStem>.tstout in"
+	echo "		the format 'TrueValue PredictedValue' format."
+	echo ""
+        echo "$version"
+	echo '==========================================================='
+	exit
+endif
+
+# ==================================================
+# Creating the training and testing files
+#
+only_cont $1 $1_mars
+
+# ==================================================
+# Calling the program
+#
+mars3.6-bag-1 -o $1_mars.tstout -t $1_mars.test $argv[3-] $1_mars
+
+mv $1_mars.tstout $2
+
+
+# ==================================================
+# Removing the MARS files
+#
+rm $1_mars*
+
+
+
+

@@ -1,0 +1,58 @@
+#!/usr/local/bin/perl
+
+# run_cma_lindiscr
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cma_lindiscr,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# NOTE
+# resubstitution error for training set not implemented because LinDiscr
+# doesnt show this ...
+
+use vars qw($pgmname $pgmpath $trainargs %k $args $debug
+	    $testargs  $predfile  $filestem $opt_tmppath);
+use Getopt::Long;
+use File::Basename;
+use File::Copy;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginMA("LinDiscr",$pgmversion); 
+
+my $stem = basename($filestem);
+my $tmpstem = "$opt_tmppath$stem";
+copy("$filestem.names", "$tmpstem.names");
+copy("$filestem.data", "$tmpstem.data");
+symlink("$filestem.data", "$tmpstem.test");
+
+startCMD("LinDiscr -f $tmpstem $args $trainargs");
+while (defined($_=getLine())) {
+  if  (/Number of Coefficients\s*([0-9]+)/) {
+    $k{"MA_lindiscr_Size"} = $1;
+    last;
+  } 
+}
+while (defined($_=getLine())) {
+}
+$k{"MA_lindiscr_Traintime"} = stopCMD();
+
+startCMD("LinDiscrU -f $tmpstem  -p $predfile $args $testargs");
+while (defined($_=getLine())) {
+  if (/^Linear Discriminant test set Error\s*([0-9\.]+) /) {
+    $k{"MA_lindiscr_Error"} = $1;
+  }
+}
+$k{"MA_lindiscr_Testtime"} = stopCMD();
+
+rmFile("$tmpstem.coef");
+rmFile("$tmpstem.names");
+rmFile("$tmpstem.test");
+rmFile("$tmpstem.data");
+
+endMA();
+

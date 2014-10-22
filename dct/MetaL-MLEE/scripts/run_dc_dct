@@ -1,0 +1,40 @@
+#!/usr/local/bin/perl
+
+# run_dct
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_dc_dct,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $args $trainargs $debug %k
+	    $time $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginMA("dct",$pgmversion); 
+# we do individual time measurements for all blocks of measures
+# With -o optionlist it is possible to supress blocks of measures
+# here are the possible optionlist characters: (beqcmv)
+#   b BHEP-test
+#   q quantiles
+#   e information-based measures
+#   c multiple correlations
+#   m M-statistics
+#   v V-statistics
+# we never allow bhep (this is turned off with -b too)
+# RATS: this doesnt work as desired because some measurements
+# show up in all runs!!!
+
+startCMD("$pgmpath/../bin/dct $opt_ao -b -f $opt_istem >> $opt_o");
+while (defined($_=getLine())) {
+}
+$k{"DCT_Totaltime"} = stopCMD();
+
+
+endMA();

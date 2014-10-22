@@ -1,0 +1,23 @@
+include base learners or point to download site
+point to c45-oefai download site in doc
+
+include testers or point to download site.
+
+include preproc or point to download site
+
+-> still pending partner info
+
+-------
+
+investigate: checking for same tmp and exp dir not
+working under win98?
+
+what is wrong with calling the dct program - empty program name?
+-> DONE
+
+implement experiment locking
+-> DONE 
+
+keep a hash of files to cleanup after instead of having each file in
+a seperate variable. use this at the end of program.
+Especially for the files in tmp to avoid left-overs

@@ -1,0 +1,592 @@
+#!/usr/local/bin/perl
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_clem,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# run_clem: execute a clementine classification algorithm on
+#   The learning algorithm must be specified as a stream file that
+#   contains only the parametrized node, named 'method' with 
+#   the slot ouput name set to 'class'
+# by Johann Petrak (OeFAI)
+
+
+# CHANGES
+# 1999/12/14 1.4: workaround for the clementine 5.1 bug: clementine
+#     wont recognize the node names in batch mode (but it does in
+#     interactive node) , so node names have at some points been
+#     replaced by node types in the generated stream script
+#     (thanks to Tom Khabaza for that workaround)
+# 1999/12/09 1.3: add option -cmd to allow specification of alternate
+#     command to invoke clementine (handy for switching 
+#     between different versions)
+# 1999/11/12 1.2: add option -vl that will only output the
+#    Clementine log but not the other info -v shows
+
+
+require 5.000;
+use Getopt::Long;
+use File::Basename;
+
+sub showusage {
+  print STDERR <<USAGE
+Usage: $0 [-test | -train] -f filestem -m method 
+  [-p n|c] [-d path] [-r stem] [-s seed] [-cmd \"command\"]
+  [-c4] [-nc] [-i] [-v] [-vl]
+
+  -f filestem: the stem of the names,data,test files (required)
+  -m method: the full name of a stream file containing the method node
+     The node must have name 'method' and output name 'class'
+  [-train]: create a model (default)
+  [-test]: evaluate a mode
+  [-p n|c]: prefix used for generated class label (guessed)
+  [-d path]: directory where to store the generated .str and .scr files
+             and also the generated analysis and matrix files
+  [-r stem]: filestem for the generated files (default: stem.method)
+  [-cmd cmd]: alternate command to call Clementine (default: clementine)
+  [-nc]: dont cleanup temporary files after run
+  [-i]: interactive, call Clementine in interactive mode for debugging
+  [-s seed]: random seed; if not given, option will be left unused 
+  [-c4]: strict c4.5 format: data records have a terminating dot
+  [-v]: verbose output
+  [-vl]: show logfile and version info but not all the rest of -v
+Program version: $pgmversion
+USAGE
+    ;
+  exit(1);
+}
+GetOptions("f=s","m=s","p=s","d=s","vl",
+	   "v","nc","s=i","cmd=s",
+	   "d=s","r=s",
+	   "i","c4",
+	   "test", "train") or showusage();
+
+if ($opt_s =~ /^\s*$/) {
+  $seed = 123;
+  $setrandom = false;
+} else {
+  $seed = $opt_s;
+  $setrandom = true;
+}
+if ($opt_f =~ /^\s*$/) {
+  print STDERR "Filestem not specified!\n";
+  showusage();
+} elsif ($opt_m =~ /^\s*$/) {
+  print STDERR "Method not specified!\n";
+  showusage();
+} elsif (!($opt_p =~ /^[nc ]?$/)) {
+  print STDERR "Prefix must be n or c, is $opt_p\n";
+  showusage();
+}
+
+if ($opt_train) {
+  if ($opt_test) {
+    die "ERROR: cant have -train and -test at the same time!\n";
+  } else {
+    $train = 1;
+  }
+} else {
+  if ($opt_test) {
+    $train = 0
+  } else {
+    $train = 1;
+  }
+}
+
+if ($opt_cmd ne "") {
+  $clemcmd = $opt_cmd;
+} else {
+  $clemcmd = "clementine";
+}
+
+print "run_clem version $pgmversion\n";
+
+$names = $opt_f . ".names";
+$data = $opt_f . ".data";
+$test = $opt_f . ".test";
+$method = $opt_m;
+
+$filestem = basename($opt_f);
+
+$methodfile = basename($method);
+$methodpath = dirname($method);
+($t1,$t2,$t3) = fileparse($method,("\.[^\.]*"));
+if ($opt_r eq "") {
+  $opt_r = $filestem . "." . $t1;
+}
+
+$opt_p =~ y/a-z/A-Z/;
+if ($opt_d eq "") { $opt_d = "."; }
+
+if ($opt_v == 1) { 
+  print "Verbose flag given\n";
+  print "Names file:          $names\n";
+  print "Method stream file:  $method\n";
+  print "Generated file stem: $opt_r\n";
+  print "Generated file path: $opt_d\n";
+  print "Prefix:              $opt_p\n";
+}
+
+
+
+$datafile = basename($data);
+$datapath = dirname($data);
+$testfile = basename($test);
+$testpath = dirname($test);
+if ($opt_p eq "") {
+  $methodfirst = substr($methodfile,0,1);
+  if ($methodfirst =~ /[nNmMrR]/) {
+    $opt_p = "N";
+  } else {
+    $opt_p = "C";
+  }
+  if ($opt_v == 1) { print "Guessing prefix to be $opt_p\n"; }
+}
+
+
+open(names,  $names) || die "Names file $names not found!\n";
+(-f $data) || die "Data file $data not found!\n"; 
+(-f $test) || die "Test file $test not found!\n";
+
+# parse the names file - we need:
+# - the list of class label: otherwise strange mixup matrices might occur
+# - the names of all attributes to create reasonable type nodes
+# parsing is a bit simple: first we remove all leading and trailing
+# spaces from a line, then everything of the form '| ....$'
+# if that what remains contains a comma, we assume the first occurance
+# of such a line to be the label list.
+# the class label list CANNOT span multiple lines!
+# does this code recognize escaped characters like \, 
+# NOTE: the idea to parse the class labels arised, because the matrix
+# node of clementine did not build the full mixup matrix when only
+# one class label is present in the test file and the assigned column.
+# It turned out that providing the type node with the full list 
+# of class labels doesnt help to solve this problem, though.
+
+# UPDATE: now we parse something more closely to C5 format:
+# if instead of a list of class labels, a single label is given,
+# we assume this is a regression problem, with the last attr
+# as the target -- i.e. the name of the target attribute cannot
+# be specified and this always implies regression!
+# if no class label list or target name is given, regression
+# is assumed too.
+$numfields = 0;
+$haveclass = 0;
+while (<names>) {
+  s/^\s+//;			# remove leading white space
+  s/\|.*$//;			# remove (trailing) comment
+  s/\s+$//;			# remove trailing whitespace
+  if (/^\s*$/) {		# empty line: skip
+    next;
+  }
+
+  if (/^[^:]+$/) {                # if there is no ":", we assume target
+    if (!$haveclass ) { 
+      chomp;
+      # remove a trailing dot, if present
+      s/\.$//;
+      $classlabels = $_;
+      $classlabels =~ s/, /,/g; # remove blanks between labels
+      $haveclass = 1;
+    } else {
+      die "Strange class line when parsing names file: $_\n";
+    }
+  } elsif (/^(\S+):\s*(.*)$/) {
+    $attr[$numfields] = $1;
+    $attrdef[$numfields] = $2;
+    #print "ATTRDEF of $1: $2\n";
+    $attrtyp[$numfields] = 1;
+    $numfields++;
+  } else {
+    die "Strange attribute line when parsing names file: $_\n";
+  }
+}
+close(names);
+
+if ($opt_c4) {			# if we have strict c4.5 format with terminating dot
+  # add the dot to the class labels, since clementine will 
+  # include the dot in the name too
+  $classlabels =~ s/,/\.,/;
+  $classlabels =~ s/$/\./;
+}
+my @classlabels = split(",",$classlabels);
+if ($#classlabels <= 0) {
+  print "Guessing that this is a regression problem\n" if $opt_v;
+  if ($#classlabels == 0) {
+    print "Name of target attribute: $classlabels\n" if $opt_v;
+  }
+  $regression = 1;
+  $attr[$numfields-1] = "Class";
+} else {
+  print "Found class labels: >$classlabels<\n" if $opt_v;
+  $regression = 0;
+  # add one for the last field, the class
+  $attr[$numfields] = "Class";
+  $numfields++;
+}
+print "Number of class labels: ",$#classlabels+1,"\n" if $opt_v;
+
+
+$lastnum = $numfields - 1;
+$fields = "";
+$types = "";
+$directions = "";
+$blanks = "";
+$weights = "";
+$internal_blanks = "";
+$checked = "";
+$internal_types = "";
+$stopped = "";
+for ($i=0; $i<$numfields; $i++) {
+  $fields .= "W '" . $attr[$i] . "'\n";
+  $types .= "TY W 'auto_type'\nS 'Auto'\n\n";
+  $directions .= "W 'IN'\n";
+  $blanks .= 
+    "BL W 'blank'
+inuse B false
+notnums B false
+whitespace B false
+values [ ]
+numeric B true
+ENDBLANK
+";
+  $weights .= "1.0\n";
+  
+  if ($i == $lastnum) {
+    $internal_directions .= "W 'OUT'\n";
+  } else {
+    $internal_directions .= "W 'IN'\n";
+  }
+  $internal_blanks .=
+    "BL W 'blank'
+inuse B true
+notnums B false
+whitespace B false
+values [ W '?'
+]
+numeric B true
+ENDBLANK
+";
+  $checked .= "W 'NONE'\n";
+  $stopped .= "B true\n";
+  if ($i == $lastnum) {
+    if ($regression) {
+      $internal_types .=
+	"TY W 'auto_type'\nS 'Auto Real'\n\n";
+    } else {
+      $classout = "";
+      foreach (split(/,/,$classlabels)) {
+	s/(.*)/W \'$1\'\n/;
+	$classout .= $_;
+      }
+      $internal_types .=
+	"TY W 'set'\nS 'Set'\n[\n" . $classout . "]\n";
+    }
+  } else {
+    if ($attrdef[$i] =~ /^\s*continuous[\s\.]*$/) {
+      $internal_types .= 
+	"TY W 'auto_type'\nS 'Auto Real'\n\n";
+    } else {
+      $internal_types .= 
+	"TY W 'auto_type'\nS 'Auto Set'\n\n";
+    }
+    #$internal_types .= 
+    #  "TY W 'auto_type'\nS 'Auto'\n\n";
+  }
+}
+
+if ($train) {
+  $streamfile = "$opt_d/$opt_r.train.str";
+  open(outstream,"> $streamfile") ||
+    die "Could not open file $streamfile for writing: $!\n";
+  print outstream <<EOF
+444
+5.0
+clementine_radians B true
+clementine_time_format S 'HH:MM:SS'
+  clementine_time_rollover B false
+    clementine_date_format S 'DD/MM/YY'
+clementine_date_baseline 1900
+clementine_default_century 1900
+clementine_century_rollover_switch B false
+clementine_century_rollover 30
+clementine_dprecision B false
+clementine_pr_places 3
+clementine_ruleset_mode W 'origin'
+clementine_protect_rule_eval W 'default_val'
+ENDOPT
+W 'ENDPARAM'
+AUTO_ANNOTATE[
+'Stream created by johann on Tue Jun  8 18:44:30 MET DST 1999'
+''
+'Stream Name: /bluebox/johann/METAL/DEVELOP/batch_interface/file_type.str'
+''
+'Last Updated by johann on Tue Jun  8 18:45:14 MET DST 1999'
+]
+MANUAL_ANNOTATE[
+]
+2
+variablefilenode variablefileicon 88 116 B false
+'file'
+hidden B false
+auto_name B false
+manual [ ]
+filename S '$datafile'
+directory S '$datapath'
+encoding W 'Default'
+nfieldsauto B true
+nfields $numfields
+manfields 1
+fields { 
+$fields
+}
+types { 
+$types
+}
+directions { 
+$directions
+}
+blanks { 
+$blanks
+}
+weights { 
+$weights
+}
+header_skip 0
+delimiters [ 44
+]
+EOL [ ]
+delimitspace B false
+delimittab B false
+delimitnl B true
+multi_blank B false
+delimitnonpr B false
+gobblequotes B false
+fieldnamesfile B false
+autoconvert B true
+quotes_1 W 'Discard'
+quotes_2 W 'Discard'
+stripspace B false
+ENDNODE
+
+typenode typeicon 226 116 B false
+'type'
+hidden B false
+auto_name B false
+manual [ ]
+internal_directions { 
+$internal_directions
+}
+internal_blanks { 
+$internal_blanks
+}
+checked { 
+$checked
+}
+coerced B false
+internal_types { 
+$internal_types
+}
+field_cache P [ ]
+B false
+ENDNODE
+
+1
+1 2
+ENDSUPERS
+SCRIPTING
+'load stream $method'
+'connect type to method'
+'execute method'
+'save generated class as $opt_d/$opt_r.class.out.node'
+ENDSCRIPT
+B true
+ENDSCRIPTING
+EOF
+      ;
+  
+  close(outstream);
+  
+}
+
+if (!$train) {
+  $streamfile = "$opt_d/$opt_r.test.str";
+  open(outstream,"> $streamfile") ||
+    die "Could not open file $streamfile for writing: $!\n";
+  print outstream <<EOF
+444
+5.0
+clementine_radians B true
+clementine_time_format S 'HH:MM:SS'
+clementine_time_rollover B false
+clementine_date_format S 'DD/MM/YY'
+clementine_date_baseline 1900
+clementine_default_century 1900
+clementine_century_rollover_switch B false
+clementine_century_rollover 30
+clementine_dprecision B false
+clementine_pr_places 3
+clementine_ruleset_mode W 'origin'
+clementine_protect_rule_eval W 'default_val'
+ENDOPT
+W 'ENDPARAM'
+AUTO_ANNOTATE[
+'Stream created by johann on Tue Jun  8 18:44:30 MET DST 1999'
+''
+'Stream Name: /bluebox/johann/METAL/DEVELOP/batch_interface/file_type.str'
+''
+'Last Updated by johann on Tue Jun  8 18:45:14 MET DST 1999'
+]
+MANUAL_ANNOTATE[
+]
+2
+variablefilenode variablefileicon 88 116 B false
+'file'
+hidden B false
+auto_name B false
+manual [ ]
+filename S '$testfile'
+directory S '$datapath'
+encoding W 'Default'
+nfieldsauto B true
+nfields $numfields
+manfields 1
+fields { 
+$fields
+}
+types { 
+$types
+}
+directions { 
+$directions
+}
+blanks { 
+$blanks
+}
+weights { 
+$weights
+}
+header_skip 0
+delimiters [ 44
+]
+EOL [ ]
+delimitspace B false
+delimittab B false
+delimitnl B true
+multi_blank B false
+delimitnonpr B false
+gobblequotes B false
+fieldnamesfile B false
+autoconvert B true
+quotes_1 W 'Discard'
+quotes_2 W 'Discard'
+stripspace B false
+ENDNODE
+
+typenode typeicon 226 116 B false
+'type'
+hidden B false
+auto_name B false
+manual [ ]
+internal_directions { 
+$internal_directions
+}
+internal_blanks { 
+$internal_blanks
+}
+checked { 
+$checked
+}
+coerced B false
+internal_types { 
+$internal_types
+}
+field_cache P [ ]
+B false
+ENDNODE
+
+1
+1 2
+ENDSUPERS
+SCRIPTING
+'load generated $opt_d/$opt_r.class.out.node'
+'create analysisnode'
+'insert model class connected between :type and :analysis'
+'set :analysis.confusion = True'
+'set :analysis.performance = False'
+'set :analysis.confidence = False'
+'execute :analysis'
+'create filternode'
+'connect class to :filter'
+'create tablenode'
+'connect :filter to :table'
+'for f in_fields_at filter'
+' set :filter.field.^f = 0'
+'endfor'
+'set :filter.field.\$$opt_p-Class = 1'
+'execute :table'
+ENDSCRIPT
+B true
+ENDSCRIPTING
+EOF
+      ;
+  
+  close(outstream);
+}
+
+
+## additional script commands we would like, something like:
+#'set analysis.output_to = Disk'
+#'set analysis.disk_fn = xxxx.out'
+
+
+
+if ($opt_i == 1) {
+  $cmd = "$clemcmd -M -execute -stream $streamfile ";
+} else {
+  $cmd = "$clemcmd -M -batch -execute -stream $streamfile";
+}
+print "Command: $cmd\n" if $opt_v;
+$r = `$cmd`;
+
+if ((($opt_v == 1) || ($opt_vl == 1)) &&($opt_i eq "")) {
+  print `cat clem_batch.log`;
+}
+print $r;
+
+if (!$train) {
+  open (IN,"<analysis.txt");
+  while(<IN>) {
+    if ($regression) {
+      if (/Mean Error\s+:\s+([-0-9\.]+)/) {
+	$error = $1;
+	print "Mean Error: $error\n";
+      }
+      if (/Mean Absolute Error\s+:\s+([-0-9\.]+)/) {
+	$error = $1;
+	print "Mean Absolute Error: $error\n";
+      }
+      if (/Linear Correlation\s+:\s+([-0-9\.]+)/) {
+	$error = $1;
+	print "Correlation: $error\n";
+      }
+    } else {
+      if (/Wrong[^\(]+\(\s*([0-9\.]+)/) {
+	$error = $1;
+	print "Error rate: $error\n";
+      }
+    }
+  }
+  close(IN);
+}
+if (!$opt_nc) {			# unless we dont want cleanup ...
+   # remove all the temporary files
+  if (!$train) {
+    unlink "$opt_d/$opt_r.class.out.node";
+    unlink "$opt_d/$opt_r.train.str";
+    unlink "$opt_d/$opt_r.test.str";
+    unlink "analysis.txt";
+  }  
+  unlink "clem_batch.log";
+}

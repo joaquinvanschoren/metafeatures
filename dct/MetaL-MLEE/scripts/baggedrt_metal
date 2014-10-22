@@ -1,0 +1,65 @@
+#! /usr/bin/csh -f
+
+set VERSION='$Revision: 3.0.2.3 $'
+set DATE='$Date: 2002/08/28 13:12:52 $'
+set RCSID='$Id: baggedrt_metal,v 3.0.2.3 2002/08/28 13:12:52 johann Exp $'
+# 2002-08-01 JP: deactivated the first parm again, becuase now
+# these helper programs must reside in the binary search path
+# To allow for easy change back the parameter is kept but used with
+# a dummy argument.
+# 2002-02-15 carlos: removed bug caused by JP's change :-)
+# 2001-10-16 JP: added new first argument that needs to contain the
+#   path were bootstrap_sample_metal and bag_them_metal are located
+# (04/10/01 carlos) added version info
+
+set RT = "rt4.1"
+# the following two where: ${1}/bootstrap... and ${1}/bag_them...
+set BOOT = "bootstrap_sample_metal" 
+set BAG =  "bag_them_metal"
+
+if ( ($#argv < 1) || ($1 == "-h") || ($1 == "-V") ) then
+        echo ''
+        echo ''
+        echo '==================================================================='
+        echo 'SYNTAX'
+        echo "    $0:t <PathToHelperPgms> <FileStem> <PredsFile> <n_bootstrap_samples> [<RT parameters>]"
+        echo '-------------------------------------------------------------------'
+        echo $VERSION / $DATE
+        echo '==================================================================='
+        echo ''
+        echo ''
+        exit
+endif
+
+
+set STEM = $2
+set N_RTS = $4
+set RT_PARS = "$argv[5-]"
+
+ln -s  $STEM.names $STEM:t_perm_it.names
+ln -s  $STEM.test $STEM:t_perm_it.test 
+
+@ TrainTime = 0
+@ r = 1
+while ($r <= $N_RTS)
+	echo "IT : " $r
+
+	set TrainTime = `timex $BOOT $STEM.data $STEM:t_perm_it.data |& awk '$1 == "user" {print $2+'$TrainTime'}'`
+
+	set TrainTime = `timex $RT $STEM:t_perm_it -metal -test $RT_PARS |& tail -5 | awk '$1 == "user" {print $2+'$TrainTime'}'`
+	mv $STEM:t_perm_it.tstout $STEM:t.tstout.$r
+
+	@ r++
+end
+
+rm $STEM:t_perm_it.*
+
+# ======================================================================
+# Obtaining the averaged predictions from each iteration prediction
+#
+set TestTime = `timex $BAG $STEM:t.tstout $N_RTS |& awk '$1 == "user" {print $2}'`
+
+mv $STEM:t.tstout $3
+rm $STEM:t.tstout.*
+
+echo "TrainTime=" $TrainTime " TestTime=" $TestTime

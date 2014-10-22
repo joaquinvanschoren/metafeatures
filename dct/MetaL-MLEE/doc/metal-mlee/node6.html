@@ -1,0 +1,1172 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>The Programs</TITLE>
+<META NAME="description" CONTENT="The Programs">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node7.html">
+<LINK REL="previous" HREF="node5.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node7.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html185"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html181"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html175"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html183"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html186"
+  HREF="node7.html">Adapting METAL-MLEE</A>
+<B> Up:</B> <A NAME="tex2html182"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html176"
+  HREF="node5.html">Standard Database Format</A>
+ &nbsp <B>  <A NAME="tex2html184"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html187"
+  HREF="node6.html#SECTION00061000000000000000">Main experimentation program: <TT>run_exp</TT></A>
+<UL>
+<LI><A NAME="tex2html188"
+  HREF="node6.html#SECTION00061100000000000000">Synopsis</A>
+<LI><A NAME="tex2html189"
+  HREF="node6.html#SECTION00061200000000000000">Important Options</A>
+<LI><A NAME="tex2html190"
+  HREF="node6.html#SECTION00061300000000000000">Specifying a CPU time limit</A>
+<LI><A NAME="tex2html191"
+  HREF="node6.html#SECTION00061400000000000000">Specifying learning algorithms</A>
+<LI><A NAME="tex2html192"
+  HREF="node6.html#SECTION00061500000000000000">Passing parameters to the learning algorithms</A>
+</UL>
+<LI><A NAME="tex2html193"
+  HREF="node6.html#SECTION00062000000000000000">Algorithm interface programs</A>
+<LI><A NAME="tex2html194"
+  HREF="node6.html#SECTION00063000000000000000">Extracting information from the results: <TT>parse_results</TT></A>
+<UL>
+<LI><A NAME="tex2html195"
+  HREF="node6.html#SECTION00063100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html196"
+  HREF="node6.html#SECTION00064000000000000000">Normalize time measurements: <TT>parse_times</TT> </A>
+<UL>
+<LI><A NAME="tex2html197"
+  HREF="node6.html#SECTION00064100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html198"
+  HREF="node6.html#SECTION00065000000000000000">Checking the database format: <TT>check_database.pl</TT></A>
+<UL>
+<LI><A NAME="tex2html199"
+  HREF="node6.html#SECTION00065100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html200"
+  HREF="node6.html#SECTION00066000000000000000">Checking experiment output: <TT>check_results.pl</TT></A>
+<UL>
+<LI><A NAME="tex2html201"
+  HREF="node6.html#SECTION00066100000000000000">Synopsis and options</A>
+</UL>
+<LI><A NAME="tex2html202"
+  HREF="node6.html#SECTION00067000000000000000">Other programs and helper files included in the distribution</A>
+<UL>
+<LI><A NAME="tex2html203"
+  HREF="node6.html#SECTION00067100000000000000">Calculate quick measures from names files: <TT>parse_names</TT></A>
+<LI><A NAME="tex2html204"
+  HREF="node6.html#SECTION00067200000000000000">Select a subset of features: <TT>project</TT></A>
+<LI><A NAME="tex2html205"
+  HREF="node6.html#SECTION00067300000000000000">Sample interface scripts</A>
+<LI><A NAME="tex2html206"
+  HREF="node6.html#SECTION00067400000000000000">The Clementine command line interface: <TT>run_clem</TT></A>
+<LI><A NAME="tex2html207"
+  HREF="node6.html#SECTION00067500000000000000">Calculate landmarks: <TT>landmark.pl</TT> </A>
+</UL></UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION00060000000000000000"></A>
+<A NAME="programs"></A>
+<BR>
+The Programs
+</H1>
+
+<P>
+The following section describes each of the programs in the
+<I>METAL-MLEE</I> in more detail. Note that all programs will
+accept the <TT>-h</TT> option that will show an explanation
+of all valid options and the version and versiondate of 
+the program. The following documentation only contains 
+explanations of those options that are releveant for the
+use of <I>METAL-MLEE</I> for use with the <I>datamining advisor</I>.
+For a more complete documentation of the programs see
+[<A
+ HREF="node12.html#Petrak:2002a">Petrak 2002a</A>].
+
+<P>
+
+<H2><A NAME="SECTION00061000000000000000">
+Main experimentation program: <TT>run_exp</TT></A>
+</H2>
+
+<P>
+The <TT>run_exp</TT> program performs the follwing tasks for
+a given base database:
+
+<UL>
+<LI>Optionally run the data characterization program
+</LI>
+<LI>Run a parallel error estimation for a list of specified
+  learning algorithms for which <I>interface programs</I> 
+  (see&nbsp;<A HREF="node6.html#interface">5.2</A>) exist. A 10-fold crossvalidation
+  procedure will usually be carried out for this, but
+  other estimation procedures can be specified.
+</LI>
+<LI>Create a file with the correct target values for each
+  estimation fold.
+</LI>
+<LI>Create files with the predicted target values for 
+  each fold and learning algorithm.
+</LI>
+<LI>Measure thge CPU times for each fold and learning algorithm
+  spent for the training and the evaluation phase.
+</LI>
+<LI>Create a log file that contains the details of the 
+  experiment and create the <I>results</I>-file that 
+  contains a machine-readable set of meta-data about the
+  experiment.
+</LI>
+<LI>Optionally create performance statistics for all algorithms
+  and algorithm pairs by running the <TT>run_stats</TT> program.
+  This will create the <I>stats</I>-file with a machine readable
+  set of meta-data about learning algorithm performance.
+</LI>
+</UL>
+
+<P>
+For the error estimation, the input base-database will be 
+randomly shuffled and split into one or more pairs of training-
+and evaluation data. The program <TT>run_exp</TT> needs 
+a random seed to control the random shuffling. The random seed
+defines the exact way how the data is being shuffled and
+partitioned. This allows to run the program on different
+machines, at different times, with different learning algorithms
+and still obtain comparable error estimates and comparable 
+files with predictions.
+
+<P>
+The program creates a standardized set of output files in
+the output directory specified (see Section&nbsp;<A HREF="node9.html#output">8</A>).
+
+<P>
+
+<H3><A NAME="SECTION00061100000000000000">
+Synopsis</A>
+</H3>
+
+<P>
+<PRE>
+  run_exp -h
+  run_exp -f stem -s seed [-v] ...
+</PRE>
+
+<P>
+
+<H3><A NAME="SECTION00061200000000000000">
+Important Options</A>
+</H3>
+
+<P>
+The following describes just the subset of options that 
+are important for use in the METAL-setting:
+
+<P>
+
+<UL>
+<LI><TT>-h</TT>:  Show detailled usage information, defaults, and
+  program version. 
+</LI>
+<LI><TT>-f stem</TT>:  The filestem, including the full
+path to the location of the database. In other words, the full
+filename of the data or names file without the extension (requried).
+</LI>
+<LI><code>-s seed</code>:  The seed to be used for the random number
+generator that determines how the data file will be shuffled
+before the estimation procedure is being carried out. If
+no seed is given, the value 1 will be used. The special value
+"norand" will supress random shuffling and keep the ordering 
+of the database file. This parameter is ignored for estimation
+strategy "leave one out". 
+</LI>
+<LI><code>-regr</code>:  Indicate that the database describes a regression
+  problem (i.e. the target variable is numberic). If omitted,
+  a classification problem (i.e. the target variable is discrete)
+  is assumed. 
+</LI>
+<LI><code>-dt path</code>:  The path to the directory that should be used 
+  to store temporary files. Default is <TT>/tmp</TT>. This 
+  directory must be on a device that has enough free space to
+  hold all the intermediate files. Note that unless option
+  <TT>-k</TT> or <TT>-d</TT> or <TT>-lad</TT> is specified,
+  temporary files should get removed at the end of an experiment.
+  However due to several reasons the directory can fill up with
+  leftover files, so be sure to remove unneded ones regularily.
+</LI>
+<LI><code>-d</code>:  Switch on debug mode: this will show much more information
+  in the log file and on the console (-d implies -v which will
+  show everything that goes into the logfile on the console too) 
+</LI>
+<LI><code>-lad</code>:  Switch on debugging for interface scripts. 
+  This will pass the
+  option <code>-d</code> to all the interface scripts, causing a <I>lot</I>
+  more output from the interface scripts get logged in the logfile.
+</LI>
+</UL>
+<P>
+
+<H3><A NAME="SECTION00061300000000000000">
+Specifying a CPU time limit</A>
+</H3>
+<I>METAL-MLEE</I> allows you to specify a CPU time limit for each
+call of an external learning algorithm programm. This is necessary
+since otherwise the only way to end an experiment where one
+of the algorithm loops or takes too much time would be 
+to terminate the whole experiment, loosing all the data for 
+all the algorithms. You can specify the CPI time limit, in seconds, 
+using option <TT>-t</TT>:
+<PRE>
+run_exp -f stem -s 1 -t 3600
+</PRE>
+This example sets the CPU time limit to one hour.
+(The default is 43200 seconds, or 12 hours, use the value
+0 to unlimit CPU time usage)
+
+<P>
+Note however that not all OS's support this. Currently 
+this is not possible under Windows. On some systems that do not support this
+but do support killing processes the coded workaround that tries 
+to kill the process after a specfified number of <I>elapsed</I> 
+(not CPU!) seconds might work, but this is not guaranteed either.
+
+<P>
+
+<H3><A NAME="SECTION00061400000000000000">
+Specifying learning algorithms</A>
+</H3>
+ Learning algorithms
+are always invoked through <I>interface scripts</I>.
+If you want to use a learning algorithm with <I>METAL-MLEE</I>
+for which there is not already an interface script included
+in the <TT>scripts</TT> subdirectory, you need to create a new
+one (see Section&nbsp;<A HREF="node7.html#adapt">6</A>). Interface scripts for learning 
+algorithms are named <TT>run_cla_laname</TT> for classification
+algorithms and <TT>run_rla_laname</TT> for regression
+algorithms, where <TT>laname</TT> is the name under which the
+learning algorithm should be known to <I>METAL-MLEE</I>.
+
+<P>
+To invoke one or more algorithms for an experiment, give this 
+name of the algorithm as an argument to the <TT>run_exp</TT>
+option <TT>-l</TT>. In order to use more than one algorithm, 
+specify the option <TT>-l</TT> multiple times, e.g.:
+<PRE>
+run_exp -f somestem -s 1 -l alg1 -l alg2
+</PRE>
+This example shows how to specify to run algorithms <TT>alg1</TT>
+and <TT>alg2</TT>.
+
+<P>
+Instead of specifying the list of learning algorithms every time,
+you can specify the list to be used as a default in the 
+configuration file <TT>config.pm</TT>.
+
+<P>
+
+<H3><A NAME="SECTION00061500000000000000">
+Passing parameters to the learning algorithms</A>
+</H3>
+
+<P>
+Interface scripts both execute the training and the 
+prediction phase of a learning algorithm. In order to
+specify to which phase the parameter should be passed, you 
+need to specify a ``sub option'':
+<PRE>
+run_exp -f stem -s 1 -l "alg1 -at -A" 
+  -l "alg2 -ae '-r 1.1 -s 2.1' "
+</PRE>
+This example shows how to add the option <TT>-A</TT> to the call
+of algorithm <TT>alg1</TT> for the training phase and options
+<TT>-r 1.1 -s 2.1</TT> to the testing phase of algorithm <TT>alg2</TT>.
+You can use suboption <TT>-a</TT> to specify what to pass to 
+both the training and the testing phase calls.
+
+<P>
+You can also use the same algorithm twice with different 
+parameter settings. However for this to work, you also have to
+specify different <I>algorithm suffices</I> for each of the
+different calls:
+<PRE>
+run_exp -f somestem -s 1 -l 'alg1 -at "-c 0.1" -asuf c0.1' 
+  -l 'alg1 -at "-c 0.2" -asuf c0.2'
+</PRE>
+This suffix will be appended everywhere the algorithm name is mentioned, i.e.
+statistics, the log and results file will now contain entries for
+an algorithm <TT>alg1c0.1</TT> and an algorithm <TT>alg1c0.2</TT>.
+
+<P>
+
+<H2><A NAME="SECTION00062000000000000000"></A>
+<A NAME="interface"></A>
+<BR>
+Algorithm interface programs
+</H2>
+
+<P>
+Interface programs are used to provide the main experimentation
+program <code>run_exp</code> with one standard interface to many different
+learning algorithms. In order for this to work, learning algorithms
+must fulfill some requirements that are listed in Section&nbsp;<A HREF="node7.html#adapt">6</A>
+which also explains how to adapt and add interface programs for 
+new learning algorithms.
+
+<P>
+Interface programs must reside in the same directory as the <code>run_exp</code>.
+The follow a simple naming scheme: <code>run_cla_xxx</code> for an interface
+program to a classification learning algorithm named <code>xxx</code> and
+<code>run_rla_yyyy</code> for an interface program to a regression learning
+algorithm named <code>yyyy</code>. To specify a learning algorithm as an 
+argument to <code>run_exp</code> or in the configuration file <code>config.pm</code>
+only the name of the learning algorithm must be given (i.e. <code>xxx</code> or
+<code>yyyy</code> only).
+
+<P>
+All interface programs take the same set of options. For testing 
+purposes, or when debugging problems encountered during the execution
+of <code>run_exp</code> it can be useful to directly run an interface program.
+For this, a pair of training and testing datasets and a names file must
+exists (i.e. three files with the same filestem and the following extensions:
+ <code>.data</code>,  <code>.test</code> anda <code>.names</code>).
+
+<P>
+Here are the most important options for manually running an interface 
+script:
+
+<P>
+
+<UL>
+<LI><code>-h</code>: Show all possible options and a short explanation. 
+</LI>
+<LI><code>-istem STEM</code>: The file stem (including the path) that 
+  identifies the three files (data, test, and names file) needed.
+  When invoked from within the <code>run_exp</code> program the filestem
+  will usually also include the seed and the process ID to avoid
+  duplicate file names for the temporaryly created files. 
+</LI>
+<LI><code>-tmppath PATH</code>:  Where to store intermediate or temporary data. This 
+  is currnetly not used by <code>run_exp</code> since the training/test/names
+  files are stored in the temporary directory anyways and it is easier
+  to derive other filenames for temporary files directly from this filestem. 
+</LI>
+<LI><code>-a args</code>: Pass additional arguments to all calls of the algorithm
+  (training and testing) 
+</LI>
+<LI><code>-at args</code>: Additional arguments for the training call 
+</LI>
+<LI><code>-ae args</code>: Additional arguments for the testing (evaluation) call 
+</LI>
+<LI><code>-cpulimit n</code>:  Try to limit the CPU time limit to that many seconds 
+  (might not work on all systems) 
+</LI>
+<LI><code>-kmodel file</code>: Copy the model to this file 
+</LI>
+<LI><code>-nopgm</code> dont actually call external programs, for debuggin 
+</LI>
+<LI><code>-portable</code>/<code>-noportable</code>: Usually the program tries to figure out
+  how to limit CPU time and how to determine the system/user CPU time
+  needed for the algorithm on a specific system. The <code>-portable</code>
+  switch can be used to run (experimental) code that will try to
+  do everything with Perl-code that is as portable as possible.
+  Note that portable mode still has its flaws - especially the 
+  termination of processes does not work correctly on most systems.
+  If the <code>-portable</code> option is used, <code>-cputime</code> limit
+  will be interpreted as a limit for <I>elapsed runnning</I> time 
+  instead of CPU time. 
+</LI>
+<LI><code>-k</code>: Do not delete intermediate datasets 
+</LI>
+<LI><code>-d</code>: Switch on debug mode 
+</LI>
+<LI><code>-v</code>:  Switch on verbose mode 
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00063000000000000000">
+Extracting information from the results: <TT>parse_results</TT></A>
+</H2>
+
+<P>
+This program will make it easier to extract the interesting information
+from the files generated for an experiment. The standard files 
+that are normally created are the files ending in the following
+extensions: <TT>=</TT>.results=, <TT>=</TT>.dct=, <TT>=</TT>.log=, and 
+<TT>=</TT>.stats= (see Section&nbsp;<A HREF="node9.html#output">8</A>). The <TT>=</TT>.log= file
+contains a log of all actions performed and the other three files
+contain result data (and are often collectively referred to as
+<I>result files</I>). These three files contain lines of the format:
+
+<P>
+<PRE>
+Some qualified variablename: value
+</PRE>
+
+<P>
+Each line contains a value for a variable. The value is everything
+after the colon (a value can be multidimensional, i.e. consist of more
+than one word, but usually just is a single word or number).
+The variable name is everything before the colon and consist of
+several words. The following line gives the value of the error estimate
+for algorithm <TT>=</TT>c50boost= in cross validation fold 2 of repitition 0
+in a <code>.stats</code> file:
+
+<P>
+<PRE>
+Error c50boost 0 2: 0.34123110000
+</PRE>
+
+<P>
+The <TT>=</TT>parse_results= program can be used to extract the values for
+certain variables and create a file that contains just the values
+of these variables, separated by commas organized by lines.
+The program can be used to generate one line for each filestem,
+one line for each filestem/algorithm combination or one line
+for each filestem/algorithm/crossvalidation-fold combination or 
+one line for each filestem/pair-of-algorithms combination.
+
+<P>
+The following example demonstrates how the program can be used 
+to extract different types of data:
+
+<P>
+<PRE>
+% ls
+allrep_2.dct      allrep_2.stats  led24_2.results  segment_2.dct      segment_2.stats
+allrep_2.results  led24_2.dct     led24_2.stats    segment_2.results
+
+% parse_results *.* -f %DS -f %LA -f stats.Error 
+allrep_2,basedef,0.032873806998939555
+allrep_2,basedef200,0.032873806998939555
+allrep_2,baserand,0.9899257688229056
+allrep_2,c50boost,0.009544008483563097
+allrep_2,c50rules,0.009278897136797455
+...
+allrep_2,clemRBFN,0.032873806998939555
+allrep_2,lindiscr,0.08510074231177095
+allrep_2,ltree,0.008748674443266172
+allrep_2,mlcib1,0.024920466595970307
+allrep_2,mlcnb,0.05726405090137858
+allrep_2,ripper,0.010604453870625663
+
+% parse_results *.* -breakup ds -f %DS -f results.DBSize -f results.N_discrete_attr
+allrep_2,3772,21
+led24_2,3200,24
+segment_2,2310,0
+</PRE>
+
+<P>
+
+<H3><A NAME="SECTION00063100000000000000">
+Synopsis and options</A>
+</H3>
+
+<P>
+<PRE>
+parse_results -h
+parse_results filelist -f fieldspec [-f fieldspec ...] 
+  [-breakup ds | la | lapair | foldla]
+  [-o outfile] [-n outnamesfile] [-fn] [-hostnorm] [-algnorm alg]
+  [-s sep] [-m mv] [-mnp x] [-strip]
+  [ignoredc] [-ignoreresults] [-ignorestats]
+</PRE>
+
+<P>
+
+<UL>
+<LI><code>filelist</code>: The list of files to process. The easiest way to
+  do this is to use a glob-pattern. For example, if there is a 
+  subdirectory below the current directory for each filestem and 
+  you want to process all results files for all filestems, the simplest
+  way to specify this is ``<code>*/*.{dct,results,stats}</code>''.
+</LI>
+<LI><code>-f fieldspec</code>: This option can occur more than once and specifies
+  (in order) the list of fields to include in the output. A <code>fieldspec</code>
+  is either a qualified fieldname, a special fieldname or a function.
+  A qualified fieldname is of the form <code>filspec.fieldname</code> where 
+  <code>filespec</code> is one of <code>stats</code>, <code>dct</code>, or <code>results</code> 
+  and the <code>fieldname</code> is the name portion of one of the fields that
+  occur in that file, e.g. <code>dct.Nr_attributes</code> or <code>stats.Error</code>.
+  The following special field names canbe used: <code>%LA</code> the name 
+  the learning algorithm (not for breakup=ds); <code>%DS</code> the filestem as
+  extracted from the file processed (i.e. this will usually include the
+  seed and eny suffixes - the 'true' filestem 
+  can be extracted using <code>results.Filestem</code> or <code>results.InFilestem</code>;
+  <code>%FLD</code> the fold number (only for breakup=foldla);  <code>%REP</code> 
+  the repeat number; <code>%LA1</code> and <code>%LA2</code> the names of both learning
+  algorithms for breakup=lapair.
+  Functions must get specified in the form <code>NAME(arg)</code>. The following
+  functions are currently defined: <code>AVG</code>, <code>SUM</code>, <code>COUNT</code>,
+  <code>MIN</code>, <code>MAX</code> will all calculate the corresponding function
+  over all fields that match a regular field name pattern. For example to
+  find the maximum value for all fields with a name that starts with 
+  <code>Attr_Count_All_Value</code> in the dct file, use <code>'MAX(dct.Attr_Count_All_Value.*)'</code>. Note that the pattern must be a Perl-type regular expression,
+  not a glob pattern. This featrue cannot be used to calculated
+  functions over qualified variable names, e.g. <code>'MAX(results.Traintime.*)'</code> with breakup=ds will <I>not</I> work. The function <code>ACC(field)</code> will
+  calculate <code>1-field</code>.
+</LI>
+<LI><code>-breakup x</code>: Specify for which level of detail the program
+  will create individual lines in the output. 
+  the default is  <code>la</code>, which produces one line for each combination
+  of filestem and learning algorithm. The option <code>lapair</code> will
+  generate one line of output for each combination of filestem and
+  pairs of learning algorithms,
+  <code>ds</code> generates one line of output for each filestem and 
+  <code>foldla</code> generates one line for each combination of filestem, 
+  learning algorithm and crossvalidation fold 
+  </LI>
+<LI><code>-o filename</code>: Specify a file where to write the output
+  to (if not given: standard output).
+</LI>
+<LI><code>-n filename</code>: Specify a file where to write a C4.5 names
+  file for the output - the program will try to guess the type and 
+  possible values of attributes and will also try to convert 
+  field names to something that is usable with most learning algorithms
+  that use C4.5 format.  Note that the generated file will just 
+  contain a line for each field in the output and is thus not
+  directly usable for C4.5 (for this you need to remove the line 
+  for the last field and add a class label definition line at the 
+  beginning instead).
+</LI>
+<LI><code>-fn</code>: include a line with fieldnames as the first line of
+  output - this is useful for many programs that can process CSV files
+ (e.g. <TT>R</TT>).
+</LI>
+<LI><code>-hostnorm file -algnorm alg</code>: Specify the name of a file that contains
+  host normalization data. All fields continaing the string ``time''
+  will then automatically get normalized based on the timing factors
+  for each host.  If <code>algnorm alg</code> is given, the times will
+  be expressed as a multiple of the time the algorithm <code>alg</code> needed.
+  For more information on time normalization see the next section.
+</LI>
+<LI><code>-s sep</code>: Use <code>sep</code> to separate fields instead of commas
+</LI>
+<LI><code>-m mv</code>: Use <code>mv</code> instead of a question mark to indicate
+  missing values.
+</LI>
+<LI><code>-mnp x</code>: Use <code>x</code> instead of <code>mv</code> to indicate a value 
+  for which no field has been found in the input files.
+</LI>
+<LI><code>-strip</code>: Strip strange characters from all non-numeric output.
+  This can help to make the output more easily digestable by other programs.
+</LI>
+<LI><code>-ignoredct</code>, <code>-ignoreresults</code>, <code>ignorestats</code>: Do not process the corresponding files. This can speed up processing significantly.
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00064000000000000000">
+Normalize time measurements: <TT>parse_times</TT> </A>
+</H2>
+
+<P>
+The <I>METAL-MLEE</I> package is intended to simplify the process of
+obtaining machine learning experimentation results that possibly
+get carried out on different hosts. The <code>run_exp</code> script
+collects the timing information returned from the interface scrips and
+puts them into the <code>.results</code> file.
+However, CPU time measurements obtained on different hosts are 
+not comparable. The task of <code>parse_times</code> is to analyze the
+experimentation results that were obtained on different machines 
+for the same dataset, using the same seed and algorithms.
+From the times measured on different machines, the program will
+create a table of factors which roughly represent the relative
+performance increase or decrease relative to one reference host.
+The table generated can then be used by the <code>parse_results</code>
+script normalize all time measurements to the reference machine.
+
+<P>
+WARNING: this feature should be used with extreme caution!
+You should be aware that the factor can only be used as 
+a very rough aproximation to the speed differences between 
+two machines. Several factors make this approach rather 
+inaccurate:
+
+<P>
+
+<UL>
+<LI>the CPU time measurement itself can depend on the load on the system
+and other factors that vary over time on the same system.
+</LI>
+<LI>any inaccuracies will be multiplied if the measurements
+are close to the measurement resolution of the system.
+Because of this the <code>parse_times</code> program will ignore all time
+measures <IMG
+ WIDTH="43" HEIGHT="32" ALIGN="MIDDLE" BORDER="0"
+ SRC="img1.png"
+ ALT="$&lt; 0.1$">. 
+</LI>
+<LI>different machines will optimize different instruction mixes and
+thus the speedup depends on the instruction mix needed for a specific
+execution. This means that different learning algorithms on the same 
+dataset can show different speedups, and that the same algorithm
+will show different speedups for different datasets.
+</LI>
+</UL>
+
+<P>
+
+<H3><A NAME="SECTION00064100000000000000">
+Synopsis and options</A>
+</H3>
+
+<P>
+<PRE>
+parse_times -host hostname -from YYYYMMDD -to YYYYMMDD
+  [-calc avg | last | median] [-xlispstat filename]  filelist
+</PRE>
+
+<P>
+
+<UL>
+<LI><code>filelist</code> A list of <code>.results.</code> files to process, each 
+containing timing information for the same set of learning algorithms
+on the same dataset. 
+</LI>
+<LI><code>-calc x</code> What to do if several measurements for the
+same algorithm and host are found (this will be the case if the 
+experiment gets repeated on the same machine and the <code>run_exp</code>
+option <code>-o</code> is <I>not</I> given, causing all results to get
+appended in the same file instead of overwriting old results).
+Possible values are: <code>avg</code> - calculate the average; <code>median</code> -
+calculate the median; and <code>last</code> - use the last (most recent)
+value found.
+</LI>
+<LI><code>-xlispstat filename</code> write data for subsequent processing
+in XLISPSTAT or LISP to this file.
+</LI>
+<LI><code>-from YYYYMMDD -to YYYYMMDD</code>: The generated table will 
+contain this date
+as the date identifying the start and end
+ of the validity period for the factors.
+Since machines can get upgraded or other things can change significantly
+over time that will influence the speedup factor, you can restrict the
+validity of the factor to a certain time period. The <code>parse_results</code>
+program will automatically use the factor from the correct time period
+based on the experimenation date found in the results files.
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00065000000000000000">
+Checking the database format: <TT>check_database.pl</TT></A>
+</H2>
+
+<P>
+The script <code>check_database.pl</code> will check the format of a
+database for compliance with the standard database 
+format needed by METAL (see 
+Section&nbsp;<A HREF="node5.html#dbformat">4</A>). 
+Note that unless you specify the option <code>-nocheckformat</code>, this
+script will automatically get called from <code>run_exp</code> in order 
+to make invalid results caused by a wrong format - which might
+otherwise go undetected - less likely.
+
+<P>
+
+<H3><A NAME="SECTION00065100000000000000">
+Synopsis and options</A>
+</H3>
+
+<P>
+<PRE>
+check_database.pl -f filestem [-regr] [-limit maxerrs] [-max maxlines] 
+  [-dbg] [-o]
+</PRE>
+
+<P>
+
+<UL>
+<LI><code>-f filestem</code>: Filestem (and path) of the database to process.
+  The files <code>&lt;filstem&gt;.data</code> and <code>&lt;filestem&gt;.names</code> must exist.
+</LI>
+<LI><code>-regr</code>: Indicate that the database is for a regression, not
+  classification problem.
+</LI>
+<LI><code>-limit n</code>: Limit the number of errors reported to <code>n</code>.
+</LI>
+<LI><code>-max n</code>: Limit the number of input records to be processed. This 
+will increase speed but decrease to likelihood of finding rare errors.
+</LI>
+<LI><code>-dbg</code>: Switch on debug mode
+</LI>
+<LI><code>-o</code>: Save the output in a file with the name 
+  <code>&lt;filestem&gt;.check_metal</code>
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00066000000000000000">
+Checking experiment output: <TT>check_results.pl</TT></A>
+</H2>
+
+<P>
+A single run of <code>run_exp</code> can create many files and 
+a a very large <TT>.log</TT> file, so it is often hard to
+quickly determine if some algorithm failed and in which fold
+of the experiment. The <TT>check_results.pl</TT> makes this easier.
+
+<P>
+
+<H3><A NAME="SECTION00066100000000000000">
+Synopsis and options</A>
+</H3>
+
+<P>
+<PRE>
+  check_results.pl -h
+  check_results.pl -f stem [-N n] [-l alg1 [-l alg2] ...] [-v] [-d] [-dd]
+</PRE>
+
+<P>
+
+<UL>
+<LI><code>-f stem</code> The file stem of the files to check <I>including</I> the seed, i.e that part of the filename up and including the seed.
+</LI>
+<LI><code>-N n</code> The number of folds. If this is not specified the
+program will guess from the files it finds.
+</LI>
+<LI><code>-l alg</code> Can be specified more than once to provide the 
+list of learning algorithms. If none is specified the program will 
+try to guess the list of learning algorithms from what is there.
+</LI>
+<LI><code>-v</code> More verbose output.
+</LI>
+<LI><code>-d</code> Debug - implies -v.
+</LI>
+<LI><code>-dd</code> Even more debug messages.
+</LI>
+</UL>
+<P>
+
+<H2><A NAME="SECTION00067000000000000000">
+Other programs and helper files included in the distribution</A>
+</H2>
+
+<P>
+
+<H3><A NAME="SECTION00067100000000000000"></A>
+<A NAME="parsenames"></A>
+<BR>
+Calculate quick measures from names files: <TT>parse_names</TT>
+</H3>
+The <code>parse_names</code> program calculates a few measures about the
+number of attributes, and number of values for discrete attributes
+from a
+names file. These measures are included in the <TT>.results</TT>
+file. 
+
+<P>
+<PRE>
+  parse_names -f namesfile
+</PRE>
+
+<P>
+The output shows:
+
+<UL>
+<LI><code>Type_data</code>: The type of data file: <code>class</code> or <code>regr</code>
+</LI>
+<LI><code>N_continuous_attr</code>: The number of numeric attributes
+</LI>
+<LI><code>N_discrete_attr</code>: The number of nun-numeric attributes
+</LI>
+<LI><code>N_total_discrete_vals</code>: The total number of values added 
+  up over all discrete attributes.
+</LI>
+<LI><code>Avg_discrete_vals</code>: The average number of values over
+  all discrete attributes.
+</LI>
+<LI><code>Log_discrete_combinations</code>: The natural logarithm of
+  the product of the number of values of all discrete attributes
+  (<!-- MATH
+ $\log(\Pi_1^k |a_i|)$
+ -->
+<IMG
+ WIDTH="81" HEIGHT="37" ALIGN="MIDDLE" BORDER="0"
+ SRC="img2.png"
+ ALT="$\log(\Pi_1^k \vert a_i\vert)$"> where <IMG
+ WIDTH="29" HEIGHT="34" ALIGN="MIDDLE" BORDER="0"
+ SRC="img3.png"
+ ALT="$\vert a_i\vert$"> is the number of values for 
+  discrete attribute number <IMG
+ WIDTH="12" HEIGHT="18" ALIGN="BOTTOM" BORDER="0"
+ SRC="img4.png"
+ ALT="$i$">)
+</LI>
+<LI><code>Avg_discrete_combinations</code>: The value of <code>Log_discrete_combinations</code> divided by the number of discrete attributes.
+</LI>
+<LI><code>N_classes</code>: The number of classes.
+</LI>
+</UL>
+<P>
+
+<H3><A NAME="SECTION00067200000000000000">
+Select a subset of features: <TT>project</TT></A>
+</H3>
+
+<P>
+This script selects a list of attributes from the input files specified
+by the infilestem and writes a set of output files specified by the outfilestem:
+
+<P>
+<PRE>
+  project infilestem outfilestem attrlist
+</PRE>
+
+<P>
+<code>attrlist</code> should be a comma-separated list of attribute numbers,
+where numbering starts with one. To pass this as a single argument
+it might be necessary to enclose the list in single or double quotes
+(depending on the shell you are using).
+
+<P>
+The script expects a <TT>.data</TT>, a <TT>.names</TT>, and a 
+<TT>.test</TT> file to exist and will create the corresponding 
+output files.
+
+<P>
+NOTE: The script uses the <TT>cut</TT> command internally to 
+select the attributes. Many preinstalled <TT>cut</TT> commands
+only allow for a small number of fields and short records to be
+processed. Therefore, for most databases, the GNU-cut command
+or an equivalent version without these limitations should be
+used. You can specify the path to the <TT>cut</TT> command 
+in the <TT>config.pm</TT> configuration file if it should 
+differ from the one in the binary path.
+
+<P>
+
+<H3><A NAME="SECTION00067300000000000000">
+Sample interface scripts</A>
+</H3>
+
+<P>
+The <TT>scripts</TT> subdirectory in the <I>METAL-MLEE</I> 
+distribution contains several interface scripts for 
+classification learning algorithms, regression learning
+algorithms, preprocessing algorithms and landmark measurement
+algorithms. These files can be used to adapt <I>METAL-MLEE</I>
+to other learning algorithms by using them as templates.
+
+<P>
+The following interface scripts for classification learning
+algorithms are included:
+
+<UL>
+<LI><code>run_cla_TEMPLATE</code> A template file that is explained 
+  in greater detail in Section&nbsp;<A HREF="node7.html#adapt">6</A>.
+</LI>
+<LI><code>run_cla_basedef</code>, <code>run_cla_basedef200</code>:
+An interface to the <TT>baseclearn</TT> learning 
+algorithm, which essentially ``learns'' the most frequent class
+from the input database. The <TT>basedef200</TT> interface
+runs the <TT>baseclearn</TT> learning algorithm for only the
+first 200 records in the database. The learning algorithm
+is available for download from <TT><A NAME="tex2html8"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#baseclearn">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#baseclearn</A></TT>.
+</LI>
+<LI><code>run_cla_baserand</code>: Uses the <TT>baseclearn</TT> learning algorithm
+internally, but uses
+a random class label determined from the names file instead 
+of the most frequent one.
+</LI>
+<LI><code>run_cla_c45rules</code>, <code>run_cla_c45tree</code>: 
+An interface to a modified
+version of the <TT>c4.5</TT> and <TT>c4.5rules</TT> programs. 
+The modified version of c4.5 is available from <TT><A NAME="tex2html9"
+  HREF="http://www.ai.unvie.ac.at/~johann/c45oefai">http://www.ai.unvie.ac.at/~johann/c45oefai</A></TT> (The modified version adds several new features, but 
+the necessary features are: portability to Win32 and a program to
+assign class labels to a test dataset)
+</LI>
+<LI><code>run_cla_c50boost</code>, <code>run_cla_c50rules</code>, <code>run_cla</code>c50tree=
+These are interface scripts to the commercially available C50 learning
+algorithm, a successor of c4.5. The programs are available at 
+<TT><A NAME="tex2html10"
+  HREF="http://www.rulequest.com">http://www.rulequest.com</A></TT>. You also need a modified 
+version of the program that assigns the class labels, which is
+available at <TT><A NAME="tex2html11"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#c5test">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#c5test</A></TT>.
+</LI>
+<LI><code>run_cla_clemMLP</code>, <code>run_cla_clemRBFN</code>
+  These are interface scripts to the Clementine learning algorithms
+ MLP and RBFN, respectively. The interface  scripts use the
+program <code>run_clem</code> internally to call the Clementine learning 
+algorithm in batch mode. See the description of that program for
+details.
+</LI>
+<LI><code>run_cla_lindiscr</code> The interface to the linear discriminant
+ algorithm <TT>LinDiscr</TT>. (availabilty details?)
+</LI>
+<LI><code>run_cla_ltree</code> The interface to the linear tree learning 
+algorithm <TT>Ltree</TT> (availabilty details?)
+</LI>
+<LI><code>run_cla_mlcib1</code> The interface to a 1NN learning algorithm
+that is based on the MLC++ machine learning library (availability?)
+</LI>
+<LI><code>run_cla_nb</code> The interface to a naive-bayes learning algorithm
+  that is based on the MLC++ machine learning library
+</LI>
+<LI><code>run_cla_ripper</code> The interface to the <TT>ripper</TT>
+learning algorithm. The program is available from  ???
+</LI>
+</UL>
+<P>
+The following interface scripts for regression learning algorithms 
+are included:
+
+<P>
+
+<UL>
+<LI><code>run_rla_baggedrt</code> The interface script to the regression
+tree algorithm <TT>rt4.1</TT>. Available from ????
+</LI>
+<LI><code>run_ral_cart</code> The interface to the cart learning algorithm
+that is implemented in <TT>rt4.1</TT>.
+</LI>
+<LI><code>run_rla_clemMLP</code>, <code>run_rla_clemRBFN</code> The interface 
+to the MLP and RBFN learning algorithms of Clementine. 
+</LI>
+<LI><code>run_rla_cubist</code> The interface to the <TT>cubist</TT>
+regression rule algorithm, available from <TT><A NAME="tex2html12"
+  HREF="http://www.rulequest.com">http://www.rulequest.com</A></TT>You also need a modified 
+version of the program that predicts new values, which is
+available at <TT><A NAME="tex2html13"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test</A></TT>. 
+</LI>
+<LI><code>run_rla_cubistdemo</code> The interface to the demo version of the 
+<TT>cubist</TT> program (will only process a limited number of records)
+You also need a modified 
+version of the program that predicts new values, which is
+available at <TT><A NAME="tex2html14"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#cubist_test</A></TT>. 
+</LI>
+<LI><code>run_rla_kernel</code> The interface to the kernel regression
+learning algorithm that is implemented in <TT>rt4.1</TT>
+</LI>
+<LI><code>run_rla_lr</code> The interface to a linear regression model
+learner that is implemented in <TT>rt4.1</TT>.
+</LI>
+<LI><code>run_rla_mars</code> The interface to the <TT>mars</TT>
+learning algorithm (availability?)
+</LI>
+<LI><code>run_rla_rtplt</code> The interface to the ??? learning algorithm
+that is implemented in <TT>rt4.1</TT>
+</LI>
+<LI><code>run_rla_svmtorch</code> The interface to the support 
+vector machine algorithm <TT>svmtorch</TT>, available from ???
+</LI>
+</UL>
+<P>
+The following interface scripts for measuring/landmarking algorithms
+are included:
+
+<P>
+
+<UL>
+<LI><code>run_cma_lindiscr</code> This interface to the linear discriminant
+algorithm <TT>LinDiscr</TT> (see classification learning algorithm interfaces).
+</LI>
+<LI><code>run_cma_lm1</code> (experimental)
+</LI>
+<LI><code>run_cma_mlcnb</code> Use the <TT>mlcnb</TT> learning algorithm
+as a landmark.
+</LI>
+<LI><code>run_cma_nodes</code> This interfaces to the <TT>landmarks.pl</TT>
+script that calculates several landmarks. See below a more detailled
+description of <TT>landmarks.pl</TT>
+</LI>
+</UL>
+<P>
+The following interface scripts for preprocessing algorithms are
+included:
+
+<P>
+
+<UL>
+<LI><code>run_cpa_disc</code> The interface to the discretization program
+<TT>discretiser</TT>. The interface script also needs the 
+wrapper script <code>disc_wrapper.perl</code>. Both programs are available from
+????
+</LI>
+<LI><code>run_cpa_fselC50T</code> The interface to a simple feature selection
+algorithm that uses the <TT>c5.0</TT> decision tree learning algorithm
+for a quick guess to find relevant attributes. The script also needs the
+<TT>atrib_list</TT> program  and the <TT>project</TT> program internally.
+The <TT>atrib_list</TT> program is available from <TT><A NAME="tex2html15"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#atrib_list">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#atrib_list</A></TT>.
+</LI>
+<LI><code>run_cpa_fselQ1</code> The interface to a simple feature selection
+algorithm that compares the class-posterior means of attributes
+to guess their relevance, <TT>fselQ1</TT>. The program is available from 
+<TT><A NAME="tex2html16"
+  HREF="http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#fselQ1">http://www.ai.univie.ac.at/oefai/ml/metal/software/index.html#fselQ1</A></TT>.
+The interface uses the <TT>project</TT> program internally.
+</LI>
+</UL>
+<P>
+
+<H3><A NAME="SECTION00067400000000000000">
+The Clementine command line interface: <TT>run_clem</TT></A>
+</H3>
+
+<P>
+The <TT>run_clem</TT> program simplifies the use of Clementine
+learning algorithms from the command line.
+The program analyzes the input files and creates the necessary
+information to modify a template Clementine stream file which 
+is then used in a batch-mode run of Clemeninte.
+The <TT>script</TT> directory contains stream templates for 
+the learning algorithms MLP, RBFN and C5, these are called
+<TT>c5.str</TT>, <TT>mlp.str</TT>, and <TT>rbfn.str</TT>.
+
+<P>
+WARNING: the method described has only been tested with version 5.0.1.
+There was an unresolved problem whith the version 5.1 when it first
+came out but this has not been rechecked since (which????)
+
+<P>
+<PRE>
+  run_clem -h 
+  run_clem -f filestem -m method {-train|-test} [-p n|c] [-d path] 
+    [-r stem] [-cmd cmd] [-nc] [-i] [-s seed] [-c4] [-v] [-vl]
+</PRE>
+
+<P>
+
+<UL>
+<LI><code>-f filestem</code>: The input filestem - there must be a <TT>.names</TT>
+and a <TT>.data</TT> file for training mode, or a <TT>.names</TT> and a
+<code>-m method</code>: The complete filename (including the path if necessary) of the stream file template to be used.
+</LI>
+<LI><code>-train | -test</code>: Indicate training or test mode. In training mode,
+a model file is created, in test mode, the model file is used to create
+a file containing the predicted values for the target variable.
+</LI>
+<LI><code>-p n|c</code>: This is needed internally for modifying the 
+stream file. Usually it can be guessed from the input names file.
+Use ``n'' for numeric and ``c'' for discrete target variables.
+</LI>
+<LI><code>d path</code>: The directory where generated files should be stored.
+These are the modified stream files, the model file, and the generated
+``analysis'' and ``matrix'' files.
+</LI>
+<LI><code>r stem</code>: The filestem to use for the generated files. The default 
+is <code>originalstem&gt;.&lt;method&gt;</code>.
+</LI>
+<LI><code>-cmd cmd</code>: The command to use to call the Clementine program
+(default: <TT>clementine</TT>).
+</LI>
+<LI><code>-nc</code>: Do not remove temporary files after termination - useful for debugging.
+</LI>
+<LI><code>-i</code>: Interactive - run the generated stream in an interactive
+Clementine session, invoking the Clemetine GUI. This can help with 
+finding problems and checking if everything is done correctly.
+</LI>
+<LI><code>-s seed</code>: A random seed - this can be used for streams that
+need a randomization seed internally.
+</LI>
+<LI><code>c4</code>: Accept data and test files where the records are
+terminated by a dot (if not specified: dont expect/accept the terminating dot)
+</LI>
+<LI><code>v</code>: Verbose output
+</LI>
+<LI><code>-vl</code>: Show logfile and verion info but not all the info 
+that is shown with the <TT>-v</TT> option.
+</LI>
+</UL>
+<P>
+
+<H3><A NAME="SECTION00067500000000000000">
+Calculate landmarks: <TT>landmark.pl</TT> </A>
+</H3>
+
+<P>
+This Perl-script calculates landmark measurements for a database and is 
+used internally by the landmark interface scripts.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html185"
+  HREF="node7.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html181"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html175"
+  HREF="node5.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html183"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html186"
+  HREF="node7.html">Adapting METAL-MLEE</A>
+<B> Up:</B> <A NAME="tex2html182"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html176"
+  HREF="node5.html">Standard Database Format</A>
+ &nbsp <B>  <A NAME="tex2html184"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

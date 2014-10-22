@@ -1,0 +1,49 @@
+#!/bin/csh -f 
+
+set version='$Revision: 3.0 $'
+set versiondate='$Date: 2002/06/30 19:05:19 $'
+set rcsid='$Id: exp_make_tars,v 3.0 2002/06/30 19:05:19 johann Exp $'
+#set debug
+#set echo
+
+
+# unsupported/alpha: create tarfiles in dest dir of results for all
+# experiments in a src dir. each subdir in this src directory must
+# contain just the files for a single experiments, and all of them
+# the subdir name must be the filestem and will be used to name
+# the tar file, <filestem>.tgz
+# the tar file will have no subdir info stored
+
+set src=$1
+
+if ("x$src" == "x") then
+  echo usage: $0 srcdir destdir
+  exit
+endif
+if ("$src" == "-h") then
+  echo usage: $0 srcdir destdir
+  echo Version: $version $versiondate
+  exit
+endif
+
+set dest=$2
+if ("x$dest" == "x") then
+  echo usage: $0 srcdir destdir
+  exit
+endif
+
+
+set curdir=`pwd`
+foreach subdir ( $src/* )
+  set stem=$subdir:t
+  if (-d $subdir ) then
+    echo processing subdir $stem
+    cd $subdir
+      gtar -zcvf $dest/$stem.tgz *
+    cd $curdir
+  else
+    echo ignoring file $stem
+  endif
+end
+
+cd $curdir

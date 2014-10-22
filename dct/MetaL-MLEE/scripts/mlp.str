@@ -1,0 +1,86 @@
+444
+5.0
+clementine_radians B true
+clementine_time_format S 'HH:MM:SS'
+clementine_time_rollover B false
+clementine_date_format S 'DD/MM/YY'
+clementine_date_baseline 1900
+clementine_default_century 1900
+clementine_century_rollover_switch B false
+clementine_century_rollover 30
+clementine_dprecision B false
+clementine_pr_places 3
+clementine_ruleset_mode W 'origin'
+clementine_protect_rule_eval W 'default_val'
+ENDOPT
+W 'ENDPARAM'
+AUTO_ANNOTATE[
+'Stream created by johann on Fri May  7 14:37:27 MET DST 1999'
+''
+'Stream Name: /bluebox/johann/METAL/WP5/methods/C5/test/net.str'
+''
+'Last Updated by johann on Fri May  7 14:43:25 MET DST 1999'
+]
+MANUAL_ANNOTATE[
+'V1.0'
+]
+1
+trainnode trainicon 42 73 B false
+'method'
+hidden B false
+auto_name B false
+manual [ ]
+netname S 'class'
+overwrite B true
+feedback B true
+trainmethod W 'Quick'
+expert_mode B false
+overtrain B true
+trainpcent 50
+sensitanal B true
+trainmethod W 'Quick'
+stopon W 'Default'
+accuracy 90
+cycles 250
+time 5
+setrandom B true
+seed 1
+auto_name B false
+alpha 0.9
+initial_eta 0.3
+high_eta 0.1
+low_eta 0.01
+eta_decay_cyc 30
+hid_lays W 'One'
+hl_units { 20
+15
+10
+}
+persistence 200
+m_topologies S '2 20 3; 2 27 5 , 2 22 4 ;'
+m_persistence 200
+p_hid_lays W 'One'
+p_hl_units { 20
+15
+10
+}
+p_persistence 100
+p_hid_rate 0.15
+p_hid_pers 6
+p_inp_rate 0.15
+p_inp_pers 4
+p_overall_pers 3
+r_persistence 30
+r_nb_centers 20
+r_eta_auto B true
+r_alpha 0.9
+r_eta 0.4
+r_h 1.0
+ENDNODE
+
+0
+ENDSUPERS
+SCRIPTING
+ENDSCRIPT
+B false
+ENDSCRIPTING

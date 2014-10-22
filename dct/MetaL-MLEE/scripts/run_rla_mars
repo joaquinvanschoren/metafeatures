@@ -1,0 +1,62 @@
+#!/usr/local/bin/perl
+
+# run_rla_mars
+# by Luis Torgo (LIACC) based on scripts by Johann Petrak (OeFAI)
+#
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_rla_mars,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# ----------------------------------------------------------------------
+# CHANGES:
+#
+# 2001-10-04:
+#    - calls run_mars_metal from scripts dir
+# 2001-08-31: 
+#    - recompiled MARS with larger memory allocation to try to avoid
+#      certain segmentation faults in large datasets.
+#
+
+# ----------------------------------------------------------------------
+# THIS SCRIPT NEEDS THE FOLLOWING PROGRAMS/SCRIPTS:
+#
+#  - run_mars_metal
+#    C Shell script that runs mars.
+#       .../algorithms/bin/run_mars_metal    1415 Apr 19 14:51
+#
+#  - only_cont
+#    C program used to do the transformation mentioned above.
+#       .../algorithms/bin/only_cont         137688 Apr 19 14:28
+#
+#  - mars3.6-bag-1
+#    C+Fortran program implementing MARS
+#       .../algorithms/bin/mars3.6-bag-1     425240 Aug 23 17:43
+#
+#
+
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginRA("mars",$pgmversion); 
+
+startCMD("$pgmpath/run_mars_metal $filestem $predfile -n 0 $args $trainargs ");
+while (defined($_=getLine())) {
+  if (/TrainTime=\s+([0-9\.]+)/) {
+    $k{"Traintime"} = $1;
+  }
+  if (/TestTime=\s+([0-9\.]+)/) {
+    $k{"Testtime"} = $1;
+  }
+}
+
+endRA();
+

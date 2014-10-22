@@ -1,0 +1,319 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+
+<!--Converted with LaTeX2HTML 99.2beta8 (1.43)
+original version by:  Nikos Drakos, CBLU, University of Leeds
+* revised and updated by:  Marcus Hennecke, Ross Moore, Herb Swan
+* with significant contributions from:
+  Jens Lippmann, Marek Rouchal, Martin Wilck and others -->
+<HTML>
+<HEAD>
+<TITLE>Adapting METAL-MLEE</TITLE>
+<META NAME="description" CONTENT="Adapting METAL-MLEE">
+<META NAME="keywords" CONTENT="metal-mlee">
+<META NAME="resource-type" CONTENT="document">
+<META NAME="distribution" CONTENT="global">
+
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=iso-8859-1">
+<META NAME="Generator" CONTENT="LaTeX2HTML v99.2beta8">
+<META HTTP-EQUIV="Content-Style-Type" CONTENT="text/css">
+
+<LINK REL="STYLESHEET" HREF="metal-mlee.css">
+
+<LINK REL="next" HREF="node8.html">
+<LINK REL="previous" HREF="node6.html">
+<LINK REL="up" HREF="metal-mlee.html">
+<LINK REL="next" HREF="node8.html">
+</HEAD>
+
+<BODY >
+<!--Navigation Panel-->
+<A NAME="tex2html218"
+  HREF="node8.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html214"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html208"
+  HREF="node6.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html216"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html219"
+  HREF="node8.html">Running Experiments</A>
+<B> Up:</B> <A NAME="tex2html215"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html209"
+  HREF="node6.html">The Programs</A>
+ &nbsp <B>  <A NAME="tex2html217"
+  HREF="node1.html">Contents</A></B> 
+<BR>
+<BR>
+<!--End of Navigation Panel-->
+<!--Table of Child-Links-->
+<A NAME="CHILD_LINKS"><STRONG>Subsections</STRONG></A>
+
+<UL>
+<LI><A NAME="tex2html220"
+  HREF="node7.html#SECTION00071000000000000000">Adding Learning Algorithm Interface Scripts</A>
+<LI><A NAME="tex2html221"
+  HREF="node7.html#SECTION00072000000000000000">Adding Preprocessing Algorithms</A>
+</UL>
+<!--End of Table of Child-Links-->
+<HR>
+
+<H1><A NAME="SECTION00070000000000000000"></A>
+<A NAME="adapt"></A>
+<BR>
+Adapting <I>METAL-MLEE</I>
+</H1>
+If you want to use <I>METAL-MLEE</I> with other learning algorithms
+than those for which interface scripts (see&nbsp;<A HREF="node6.html#interface">5.2</A>) already 
+exist, you need to create interface scripts for that purpose.
+
+<P>
+In a similar way, you can also add additional preprocessing algorithms. 
+
+<P>
+Adapting <I>METAL-MLEE</I> to additional algorithms essentially
+consists in adding the necessary interface programs. The
+best way to do this is to copy and adapt an existing interface
+program for a similar algorithm. The interface programs
+are written in Perl, some knowledge of Perl
+will be necessary to create a new interface program.
+
+<P>
+For each type of algorithm, there is a heavily
+commented template file that can be used as a basis for
+a new interface program.
+
+<P>
+In order to run a certain list of interface scipts automatically
+(insteading of specifying them using the <TT>-l</TT> option
+of the <TT>run_exp</TT> script), edit the <TT>config.pm</TT>
+script and change the lists of script names given there for
+the default classification, default regression, default 
+classification data-measurement and default regression
+data-measurement algorithms.
+
+<P>
+
+<H2><A NAME="SECTION00071000000000000000">
+Adding Learning Algorithm Interface Scripts</A>
+</H2>
+
+<P>
+In order to be usable with <I>METAL-MLEE</I>, the folliwng conditions
+must be fulfilled:
+
+<UL>
+<LI>The learning algorithm should be able to read a training
+  file that is in a format similar to the format of the <TT>data</TT> file 
+described in Section&nbsp;<A HREF="node5.html#dbformat">4</A>.  Similarily, the meta-data 
+required be the algorithm should be in a from that can be derived from
+the names file. Unless the learning algorithm can use the data and names
+files directly, it will  be necessary to include a conversion filter
+in the interface program.
+</LI>
+<LI>The learning algorithm should generate a persistent model file
+that can be used to later assign values for the target variable for
+new data records.
+</LI>
+<LI>It should be possible to separately call the training and 
+prediction (testing) phases of the algorithm.
+</LI>
+<LI>The prediction/testing function of the algorithm should
+take the model file generated in the training phase and a <TT>data</TT>
+file and generate a file that contains only the predictions for each
+of the cases in the <TT>data</TT> file, one prediction in each line.
+</LI>
+<LI>NOTE: the prediction function of the algorithm should output
+the prediction error which needs to be captured in the interface 
+script and returned to the main driver program <code>run_exp</code>. 
+This program will regard a learning algorithm for which no prediction
+error is returned as failed and abort the testing for that learning 
+algorithm. If the prediction function does not output the error,
+a dummy value must be used unless the something went wrong (see below).
+The correct prediction error will be calculated by the <code>run_stats</code>
+program and be available in the <code>.stats</code> file anyway.
+</LI>
+</UL>
+
+<P>
+For classification learning algorithms refer to the template
+<TT>run_cla_TEMPLATE</TT>, for regression learning 
+algorithms refer to <TT>run_rla_TEMPLATE</TT>.
+
+<P>
+
+<P></P>
+<DIV ALIGN="CENTER"><A NAME="fig:template1"></A><A NAME="577"></A>
+<TABLE>
+<CAPTION ALIGN="BOTTOM"><STRONG>Figure:</STRONG>
+The <TT>run_cla_TEMPLATE</TT> file</CAPTION>
+<TR><TD><IMG
+ WIDTH="519" HEIGHT="449" BORDER="0"
+ SRC="img5.png"
+ ALT="\begin{figure}{\footnotesize\begin{verbatim}..."></TD></TR>
+</TABLE>
+</DIV><P></P>
+Figure&nbsp;<A HREF="node7.html#fig:template1">1</A> shows the <TT>run_cla_TEMPLATE</TT>
+file with all comments removed and line numbers added. To adapt
+the file to some learning algorithm, copy it to a file 
+<TT>run_cla_xxx</TT> (for a classification algorithm) where
+<TT>xxx</TT> is the name of the learning algorithm.
+Follow the advice given in the comments in the template file to
+program the interface file for your learning algorithm.
+
+<P>
+Here a few notes on adapting the template:
+
+<UL>
+<LI>Lines 1 to 8 should be kept untouched
+</LI>
+<LI>The LANAME in  line 9 should be the same as the algorithm 
+name portion of the interface file (i.e. the same as the 
+<TT>xxx</TT> part in <TT>run_cla_xxx</TT>). VERSION should 
+reflect the version of the interface file (if you want to 
+diferenciate between different versions of the learning algorithm,
+include that version info in the LANAME, e.g. <TT>myla2.1</TT>)
+</LI>
+<LI>Line 10 should contain the command needed to call the 
+training phase of the learning algorithm. The variable <TT>$filestem</TT>
+will contain the filestem of the three files that are prepared before
+each invocation of the interface file (the data, test, and names file).
+The variables <TT>$args</TT> and <TT>$trainargs</TT> are the values
+passed via the options <TT>-a</TT> and <TT>-at</TT> respectively.
+</LI>
+<LI>Lines 12 to 15 show a loop that will process each of the lines
+that is output to stdandard output or standard error by the learning
+algorithm. Within the loop you can search the output for
+(numeric)  information
+that you want to pass back to <TT>run_exp</TT> which will 
+automatically record them in the <TT>.results</TT> file and 
+calculate averages. NOTE: you must process all output lines
+in such a while loop, using the <code>defined($_=getLine())</code>
+condition, or the interface will not work properly! If you do not
+need any information from the output, simply remove lines 13 to 15.
+</LI>
+<LI>Line 17 shows how to pass back the information to the 
+<TT>run_exp</TT> program: simply assign the value to 
+a hash variable where the hash key is the desired name of the variable.
+</LI>
+<LI>Lines 18 should be kept unchanged: it 
+shows how to finish the <TT>startCMD</TT> block
+that was opened in line 10 and record the time used up by the
+training phase of the learning algorithm. 
+</LI>
+<LI>Line 19 starts the evaluation/prediction phase of the learning
+algorithm by calling a different program or the same program with
+the apropriate options for prediction. The variable <TT>$testargs</TT>
+will contain the value for the option <TT>-ae</TT>.
+</LI>
+<LI>Lines 20-24 show how to process the standard output of the
+algorithm. As for the training phase all lines must be processed
+that way. In addition, <TT>run_exp</TT> will only work correctly
+if you pass back the prediction error in the variable <TT>Error</TT>
+as shown. If your algorithm does not output the prediction error 
+to standard output, you can work around the problem by passing
+back an arbitrary value and ignoring the errors in the <TT>.result</TT>
+file later, using the errors from the <TT>.stats</TT> file instead
+(this is recommended anyway, since the errors in the <TT>.stats</TT>
+file are more accurate)
+</LI>
+<LI>Line 25 finishes the <TT>startCMD</TT> block for the prediction
+phase and should be kept unchanged.
+</LI>
+<LI>Line 26: the <TT>rmFile</TT> function should be used to 
+remove any temporary and working files the algorithm might have created.
+</LI>
+<LI>Line 27 must be kept unchanged.
+</LI>
+</UL>
+
+<P>
+
+<H2><A NAME="SECTION00072000000000000000">
+Adding Preprocessing Algorithms</A>
+</H2>
+
+<P>
+Preprocessing algorithms will change the database before the learning 
+algorithm is applied. For each <code>run_exp</code>  experimentation run,
+you can optionally specify one preprocessing algorithm. That algorithm 
+will be called for each fold of the crossvalidation.
+In order for <code>run_exp</code> to be able to call the preprocessing
+algorithm, an interface script must be provided.
+
+<P>
+Preprocessing algorithms, like learning algorithms, have to 
+process the training and testing sets for each fold separately. 
+A typical interface script will contain two calls to the preprocessing
+program, one for the training file  and one for the test file.
+
+<P>
+Note: The preprocessing algorithm should never use information from
+the class labels in the test set! The preprocessing algorithm should
+always carry out exactly the same preprocessing transformation on the
+test set as on the training set. If the preprocessing algorithm
+adapts itself to the input dataset you must take care that this
+does not happen when the test set is processed!
+For example, a class-aware 
+discretization algorithm should discretize the numeric attributes
+in the test set in exactly the same way as it discretizes the 
+attributes in the trainingset instead of calculating new 
+discretization intervals, based on the specific information in the test
+set.
+
+<P>
+This is important, because of the practical reason that otherwise
+the content or format of the generated training and test files could
+be incompatible, but more importantly, because of the theoretical 
+reason that anything else would be cheating - using information
+from the test set that should be regarded as completely 
+unavailble for the estimation procedure.
+
+<P>
+As with the interface scripts for learning algorithms, use
+one of the scripts included in the package as a template.
+
+<P>
+<HR>
+<!--Navigation Panel-->
+<A NAME="tex2html218"
+  HREF="node8.html">
+<IMG WIDTH="37" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="next"
+ SRC="file:/usr/lib/latex2html/icons/next.png"></A> 
+<A NAME="tex2html214"
+  HREF="metal-mlee.html">
+<IMG WIDTH="26" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="up"
+ SRC="file:/usr/lib/latex2html/icons/up.png"></A> 
+<A NAME="tex2html208"
+  HREF="node6.html">
+<IMG WIDTH="63" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="previous"
+ SRC="file:/usr/lib/latex2html/icons/prev.png"></A> 
+<A NAME="tex2html216"
+  HREF="node1.html">
+<IMG WIDTH="65" HEIGHT="24" ALIGN="BOTTOM" BORDER="0" ALT="contents"
+ SRC="file:/usr/lib/latex2html/icons/contents.png"></A>  
+<BR>
+<B> Next:</B> <A NAME="tex2html219"
+  HREF="node8.html">Running Experiments</A>
+<B> Up:</B> <A NAME="tex2html215"
+  HREF="metal-mlee.html">METAL The METAL Machine</A>
+<B> Previous:</B> <A NAME="tex2html209"
+  HREF="node6.html">The Programs</A>
+ &nbsp <B>  <A NAME="tex2html217"
+  HREF="node1.html">Contents</A></B> 
+<!--End of Navigation Panel-->
+<ADDRESS>
+
+2002-10-17
+</ADDRESS>
+</BODY>
+</HTML>

@@ -1,0 +1,54 @@
+#!/usr/local/bin/perl
+
+# run_cla_c45tree
+# by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_cla_c45tree,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+use vars qw($pgmname $pgmpath $trainargs $args
+	    $testargs $predfile $filestem);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginLA("c45tree",$pgmversion); 
+
+startCMD("c4.5 -f $filestem $args $trainargs");
+while (defined($_=getLine())) {
+  if (/^Evaluation on /) {
+    last;
+  }
+}
+while (defined($_=getLine())) {
+  if (/^\s+Size/) {
+    $_ = <IN>; $_ = <IN>;
+    /^\s+\d+\s+\d+\([^\)]+\)\s+(\d+)\s+\d+\(([^%]+)%\)/;
+    $k{"Size"} = $1;
+    $k{"Resubsterror"} = $2 / 100;
+  }
+}
+$k{"Traintime"} = stopCMD();
+
+
+startCMD("bconsult -f $filestem $args $testargs");
+while (defined($_=getLine())) {
+  if (/\(([0-9\. ]+)%\)/) {
+    $k{"Error"} = $1 / 100.0;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+copy("$filestem.labs", "$predfile");
+
+rmFile("$filestem.labs");
+rmFile("$filestem.tree");
+rmFile("$filestem.unpruned");
+
+endLA();
+

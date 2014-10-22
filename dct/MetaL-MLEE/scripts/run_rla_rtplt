@@ -1,0 +1,67 @@
+#!/usr/local/bin/perl
+
+# run_rla_rtplt
+# by Luis Torgo (LIACC) based on scripts by Johann Petrak (OeFAI)
+
+$pgmversion = '$Revision: 3.0 $';
+$pgmdate    = '$Date: 2002/06/30 19:05:19 $';
+$rcsid      = '$Id: run_rla_rtplt,v 3.0 2002/06/30 19:05:19 johann Exp $';
+$dummy      = '$';   # just here to satisfy the dumb emacs fontifyer
+
+# ----------------------------------------------------------------------
+# CHANGES:
+#
+# 2001-05-21 2.1: change to new version of RT (from 4.0 to 4.1)
+#
+# 2001-08-31: 
+#    - change to new version of RT4.1 (no changes in this script)
+
+
+# ----------------------------------------------------------------------
+# THIS SCRIPT NEEDS THE FOLLOWING PROGRAMS/SCRIPTS:
+#
+#  - rt4.1
+#    C program implementing RT
+#       .../algorithms/bin/rt4.1         491096 Aug 31 16:11 
+#
+#  - rttest4.1
+#    C program implementing RT (only testing phase)
+#       .../algorithms/bin/rttest4.1     352564 Aug 31 16:11
+#
+#
+
+use vars qw($pgmname $pgmpath $trainargs  $args $debug %k
+	    $testargs  $predfile $filestem $la);
+use Getopt::Long;
+use File::Basename;
+$pgmname = $0;
+$pgmpath = dirname($pgmname);
+push(@INC,$pgmpath);
+require run_lib;
+
+beginRA("rtplt",$pgmversion); 
+
+startCMD("rt4.1 $filestem  -metal -plt accuracy $args $trainargs");
+while (defined($_=getLine())) {
+  if (/Train error = ([0-9\.]+)/) {
+    $k{"Resubsterror_MSE"} = $1;
+  }
+}
+$k{"Traintime"} = stopCMD();
+
+startCMD("rttest4.1 $filestem -metal -plt accuracy  -test  $predfile  $args $testargs");
+while (defined($_=getLine())) {
+  if (/MEAN SQUARED ERROR \(MSE\)\s*=\s*([0-9\.]+)/) {
+    $k{"Error_MSE"} = $1;
+  }
+}
+$k{"Testtime"} = stopCMD();
+
+rmFile("$filestem.data.pruned.index");
+rmFile("$filestem.data.prune_seq");
+rmFile("$filestem.data.pruned");
+rmFile("$filestem.data.pruned.dot");
+rmFile("$filestem.data.tree");
+
+endRA();
+
