@@ -1,11 +1,4 @@
 # ##########################################################################################
-# This is an R script accompanying the following paper:
-#     Matthias Reif
-#     A Comprehensive Dataset for Evaluating Approaches of various Meta-Learning Tasks
-#     First International Conference on Pattern Recognition Applications and Methods (ICPRAM), 2012
-# #########################################################################################
-
-# ##########################################################################################
 # for the installation of the required packages, use:
 # install.packages(c('e1071','rrcov','mvpart','FNN','CORElearn', 'R.utils', 'infotheo'))
 #
@@ -470,11 +463,15 @@ get_tree_properties <- function(data) {
         att_used <- c(att_used, sum(model$frame$var==att))
     }
     
-    depths <- tree.depth(as.numeric(row.names(model$frame)))
-    level <- numeric(0)
-    for(d in 1:max(depths)) {
-        level <- c(level, sum(depths==d))
-    }
+    # commented out by Noureddin Sadawi
+    # function doesn't exist
+    # if you uncomment this, then ou need to uncomment the line:
+    ### result <- c(result, get_min_max_mean_sd(level, "level"))
+    # depths <- tree.depth(as.numeric(row.names(model$frame)))
+    # level <- numeric(0)
+    # for(d in 1:max(depths)) {
+    #    level <- c(level, sum(depths==d))
+    # }
     
     result <- numeric(0)
     result["nodes"] <- n_nodes
@@ -482,7 +479,8 @@ get_tree_properties <- function(data) {
     result["nodes_per_attribute"] <- n_nodes / get_num_att(data)
     result["nodes_per_instance"] <- n_nodes / get_num_samples(data)
     result["leaf_corrobation"] <- mean(model$frame$n[model$frame$var=="<leaf>"]) / get_num_samples(data)
-    result <- c(result, get_min_max_mean_sd(level, "level"))
+    # commented out by Noureddin Sadawi
+    # result <- c(result, get_min_max_mean_sd(level, "level"))
     result <- c(result, get_min_max_mean_sd(branch_lengths, "branch"))
     result <- c(result, get_min_max_mean_sd(att_used, "attribute"))
     
@@ -684,13 +682,13 @@ compute_grouped_meta_features <- function(data) {
 
 
 read <- function(filename) {
-    data<-read.csv(filename, header=FALSE, sep=' ')
+    data<-read.csv(filename, header=FALSE, sep=',')
     m <- numeric(0)
     for(i in 1:get_num_att(data)) {
         m <- c(m, NA)
     }
     m <- c(m, "factor")
-    read.csv(filename, header=FALSE, sep=' ', colClasses=m)
+    read.csv(filename, header=FALSE, sep=',', colClasses=m)
 }
 
 write_meta_features <- function(x, filename) {
