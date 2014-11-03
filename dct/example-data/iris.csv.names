@@ -1,0 +1,5 @@
+setosa,versicolor,virginica.
+SepalLength: continuous.
+SepalWidth: continuous.
+PetalLength: continuous.
+PetalWidth: continuous.
